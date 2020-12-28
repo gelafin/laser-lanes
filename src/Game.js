@@ -1,25 +1,14 @@
 import React from 'react';
 import './master.css';
 
-const ship = {  // move these to Game component state
-  alive: true,
-  id: null
-};
+function Ship(props) {
+  const enemyImgUrl = 'https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg';
+  const allyImgUrl = 'https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg';
 
-function Enemy(props) {
   return (
   <img
     reactKey={props.key}
-    src="https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg"       
-  />
-  );
-}
-
-function Ally(props) {
-  return (
-  <img
-    reactKey={props.key}
-    src="https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg"       
+    src={ props.isAlly ? allyImgUrl : enemyImgUrl }
   />
   );
 }
@@ -63,10 +52,10 @@ function Laser(props) {
   );    
 }
 
-function EnemyRow(props) {
-  const enemyKeys = props.reactKeys;
-  const enemies = enemyKeys.map((enemyKey, index) => 
-    <Enemy column={index} key={enemyKey.toString()} />
+function ShipRow(props) {
+  const shipKeys = props.reactKeys;
+  const enemies = shipKeys.map((shipKey, index) => 
+    <Ship isAlly={props.isAlly} column={index} key={shipKey.toString()} />
   );
 
   return (
@@ -91,17 +80,6 @@ function OutputArea(props) {
         <ul className="game-text game-row">{outputCharPs}</ul>
       </div>
     );
-}
-
-function AllyRow(props) {
-  const allyKeys = props.reactKeys;
-  const allies = allyKeys.map((allyKey, index) => 
-    <Ally column={index} key={allyKey.toString()} />
-  );
-
-  return (
-      <ul className="game-row">{allies}</ul>
-  );
 }
 
 function LaserRow(props) {
@@ -143,6 +121,7 @@ class Game extends React.Component {
     this.handleInputChange = this.handleInputChange.bind(this);
     this.state = {
       input: 'testt'
+
     };
   }
   
@@ -187,11 +166,11 @@ class Game extends React.Component {
       <div className="game-container flex-container">
 
         <div className="visuals-container">
-          <EnemyRow reactKeys={enemyKeys} />
+          <ShipRow isAlly={false} reactKeys={enemyKeys} />
           <LaserRow isAlly={false} reactKeys={allyLaserKeys} />
           <OutputArea output={this.state.input} reactKeys={outputCharKeys} />
           <LaserRow isAlly={true} reactKeys={allyLaserKeys} />
-          <AllyRow reactKeys={allyKeys} />
+          <ShipRow isAlly={true} reactKeys={allyKeys} />
         </div>
 
         <div>
