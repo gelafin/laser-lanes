@@ -115,14 +115,40 @@ class InputArea extends React.Component {
   }
 }
 
-class Game extends React.Component {
-  constructor(props){
-    super(props);
-    this.handleInputChange = this.handleInputChange.bind(this);
-    this.state = {
-      input: 'testt'
+class ShipObject {
+  constructor() {
+    this.alive = true;
+    this.state = 'idle';
+  }
 
+  advanceState() {
+    if (this.state === 'idle') {
+      this.state = 'charging';
+    } else if (this.state === 'charging') {
+      this.state = 'firing';
+    } else {
+      this.state = 'idle';
+    }
+  }
+}
+
+class Game extends React.Component {
+  constructor(props) {
+    super(props);
+
+    const maxColumns = 7;
+    const maxRows = 5;
+
+    this.maxColumns = maxColumns;
+    this.maxRows = maxRows;
+
+    this.state = {
+      input: 'testt',
+      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject()}),
+      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject()}),
     };
+
+    this.handleInputChange = this.handleInputChange.bind(this);
   }
   
   tick() {
@@ -151,15 +177,15 @@ class Game extends React.Component {
   }
   
   render() {
-    const MAX_COLUMNS = 7;
-    const MAX_ROWS = 5;
+    const MAX_COLUMNS = this.maxColumns;
+    const MAX_ROWS = this.maxRows;
 
     // make keys required by React for lists of elements
     const gameRowItemKeys = new Array(MAX_COLUMNS * MAX_ROWS).fill(0).map((element, index) => index);
     const enemyKeys = gameRowItemKeys.slice(0, MAX_COLUMNS);
     const allyKeys = gameRowItemKeys.slice(MAX_COLUMNS, MAX_COLUMNS * 2);
     const allyLaserKeys = gameRowItemKeys.slice(MAX_COLUMNS * 2, MAX_COLUMNS * 3);
-    const enemyLaserKEys = gameRowItemKeys.slice(MAX_COLUMNS * 3, MAX_COLUMNS * 4);
+    const enemyLaserKeys = gameRowItemKeys.slice(MAX_COLUMNS * 3, MAX_COLUMNS * 4);
     const outputCharKeys = gameRowItemKeys.slice(MAX_COLUMNS * 4, MAX_COLUMNS * 5);  
 
     return (
@@ -167,7 +193,7 @@ class Game extends React.Component {
 
         <div className="visuals-container">
           <ShipRow isAlly={false} reactKeys={enemyKeys} />
-          <LaserRow isAlly={false} reactKeys={allyLaserKeys} />
+          <LaserRow isAlly={false} reactKeys={enemyLaserKeys} />
           <OutputArea output={this.state.input} reactKeys={outputCharKeys} />
           <LaserRow isAlly={true} reactKeys={allyLaserKeys} />
           <ShipRow isAlly={true} reactKeys={allyKeys} />
