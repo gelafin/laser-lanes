@@ -68,7 +68,7 @@ function Laser(props) {
 function ShipRow(props) {
   const shipKeys = props.reactKeys;
   const enemies = shipKeys.map((shipKey, index) => 
-    <Ship isAlly={props.isAlly} column={index} key={shipKey.toString()} />
+    <Ship isAlly={props.isAlly} state={} column={index} key={shipKey.toString()} />  // TODO: ************ use props.shipStates (array of states). No, can't map over two arrays
   );
 
   return (
@@ -124,6 +124,10 @@ class ShipObject {
     this.state = 'idle';
   }
 
+  getState() {
+    return this.state;
+  }
+
   advanceState() {
     if (this.state === 'idle') {
       this.state = 'charging';
@@ -163,7 +167,7 @@ class Game extends React.Component {
       // find an idle laser and advance its state from idle to charging
       for (const ship of state.allyShips) {
         if (ship.state === 'idle') {  // TODO: be more random
-          ship.state = 'charging';
+          ship.advanceState();
         }
       }
 
@@ -202,13 +206,23 @@ class Game extends React.Component {
     const allyKeys = gameRowItemKeys.slice(MAX_COLUMNS, MAX_COLUMNS * 2);
     const outputCharKeys = gameRowItemKeys.slice(MAX_COLUMNS * 4, MAX_COLUMNS * 5);  
 
+    let allyShipStates = new Array();
+    for (const ship of this.state.allyShips) {
+      allyShipStates.push(ship.getState());
+    }
+
+    let enemyShipStates = new Array();
+    for (const ship of this.state.enemyShips) {
+      enemyShipStates.push(ship.getState());
+    }
+
     return (
       <div className="game-container flex-container">
 
         <div className="visuals-container">
-          <ShipRow isAlly={false} reactKeys={enemyKeys} />
+          <ShipRow isAlly={false} reactKeys={enemyKeys} shipStates={enemyShipStates} />
           <OutputArea output={this.state.input} reactKeys={outputCharKeys} />
-          <ShipRow isAlly={true} reactKeys={allyKeys} />
+          <ShipRow isAlly={true} reactKeys={allyKeys} shipStates={allyShipStates} />
         </div>
 
         <div>
