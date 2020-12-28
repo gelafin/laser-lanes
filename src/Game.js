@@ -4,13 +4,29 @@ import './master.css';
 function Ship(props) {
   const enemyImgUrl = 'https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg';
   const allyImgUrl = 'https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg';
+  const shipKey = props.key;
 
-  return (
-  <img
-    reactKey={props.key}
-    src={ props.isAlly ? allyImgUrl : enemyImgUrl }
-  />
-  );
+  if (!props.isAlly) {  // enemy ships have lasers below them
+    return (
+      <div>
+        <img
+          reactKey={shipKey}
+          src={ props.isAlly ? allyImgUrl : enemyImgUrl }
+        />
+        <Laser isAlly = {false} laserState={props.state} />
+      </div>
+    );  
+  } else {
+    return (
+      <div>
+        <Laser isAlly = {true} laserState={props.state} />
+        <img
+          reactKey={shipKey}
+          src={ props.isAlly ? allyImgUrl : enemyImgUrl }
+        />
+      </div>
+    );
+  }
 }
 
 function Laser(props) {  
@@ -39,16 +55,13 @@ function Laser(props) {
     }
   } else {  // laserState is idle
     return (
-      <div reactKey={props.key}></div>  // empty space with the appropriate width
+      <div className="laser"></div>  // empty space with the appropriate width
     );
   }
   
   // laser isn't idle, so return the charging or firing image
   return (
-    <img
-      reactKey={props.key}
-      src={imageSource}       
-    />
+    <img src={imageSource} className="laser" />
   );    
 }
 
@@ -80,16 +93,6 @@ function OutputArea(props) {
         <ul className="game-text game-row">{outputCharPs}</ul>
       </div>
     );
-}
-
-function LaserRow(props) {
-  let laserKeys = props.reactKeys;
-  let isAlly = props.isAlly;
-  let lasers = laserKeys.map((laserKey, index) => 
-    <Laser isAlly={isAlly} laserState='charging' column={index} key={laserKey.toString()} />
-  );
-
-  return <ul className='game-row laser-row'>{lasers}</ul>
 }
 
 class InputArea extends React.Component {
@@ -152,7 +155,20 @@ class Game extends React.Component {
   }
   
   tick() {
-    // advances the state of random lasers from charging to firing to idle
+    console.log('ticking');
+    // advances the state of 1 random laser from idle to charging, and all which are charging from charging to firing to idle
+    this.setState((state) => {
+      // advance states of all charging and firing ships
+
+      // find an idle laser and advance its state from idle to charging
+      for (const ship of state.allyShips) {
+        if (ship.state === 'idle') {  // TODO: be more random
+          ship.state = 'charging';
+        }
+      }
+
+    });
+
     // checks if any firing laser has "collided" with (is in the same lane as) a letter. If no letter or a vowel, it goes through (opposite ship is destroyed, so that row's prop, obtained from an array in state, is updated). If consonant, it is blocked (nothing happens)
     // informs children of their state through props
 
@@ -184,8 +200,6 @@ class Game extends React.Component {
     const gameRowItemKeys = new Array(MAX_COLUMNS * MAX_ROWS).fill(0).map((element, index) => index);
     const enemyKeys = gameRowItemKeys.slice(0, MAX_COLUMNS);
     const allyKeys = gameRowItemKeys.slice(MAX_COLUMNS, MAX_COLUMNS * 2);
-    const allyLaserKeys = gameRowItemKeys.slice(MAX_COLUMNS * 2, MAX_COLUMNS * 3);
-    const enemyLaserKeys = gameRowItemKeys.slice(MAX_COLUMNS * 3, MAX_COLUMNS * 4);
     const outputCharKeys = gameRowItemKeys.slice(MAX_COLUMNS * 4, MAX_COLUMNS * 5);  
 
     return (
@@ -193,9 +207,7 @@ class Game extends React.Component {
 
         <div className="visuals-container">
           <ShipRow isAlly={false} reactKeys={enemyKeys} />
-          <LaserRow isAlly={false} reactKeys={enemyLaserKeys} />
           <OutputArea output={this.state.input} reactKeys={outputCharKeys} />
-          <LaserRow isAlly={true} reactKeys={allyLaserKeys} />
           <ShipRow isAlly={true} reactKeys={allyKeys} />
         </div>
 
