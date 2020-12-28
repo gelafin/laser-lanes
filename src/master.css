@@ -1,0 +1,49 @@
+body {
+  box-sizing: border-box;
+  margin: 0;
+  height: 100vh;
+  background-color: #F2EDE4;
+}
+
+.flex-container {
+  display: flex;
+}
+
+.game-container {
+  height: 100vh;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+}
+
+.input-container {
+  margin: 0 10px 10px 10px;
+  padding: 30px;
+  border-radius: 30px;
+  color: white;
+  background-color: #1D58BF;
+  justify-content: center;
+}
+
+.game-text {
+  font-size: 2rem;
+  text-align: left;
+}
+
+.input-box {
+  min-width: 90%;
+  text-align: center;
+}
+
+.game-row {
+}
+
+.game-row > * {
+  display: inline-block;
+  margin-right: 7px;
+  width: 60px;
+}
+
+.laser-row > * {
+  height: 120px;
+}
+
