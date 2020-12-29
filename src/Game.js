@@ -4,13 +4,11 @@ import './master.css';
 function Ship(props) {
   const enemyImgUrl = 'https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg';
   const allyImgUrl = 'https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg';
-  const shipKey = props.key;
 
   if (!props.isAlly) {  // enemy ships have lasers below them
     return (
       <div>
         <img
-          reactKey={shipKey}
           src={ props.isAlly ? allyImgUrl : enemyImgUrl }
         />
         <Laser isAlly = {false} laserState={props.state} />
@@ -21,7 +19,6 @@ function Ship(props) {
       <div>
         <Laser isAlly = {true} laserState={props.state} />
         <img
-          reactKey={shipKey}
           src={ props.isAlly ? allyImgUrl : enemyImgUrl }
         />
       </div>
@@ -83,7 +80,7 @@ function OutputArea(props) {
     // prepare a generator of IDs for key prop
     const idGenerator = props.reactKeys.values();
     const outputCharPs = outputChars.map((char, index) => 
-      <div column={index} key={idGenerator.next()} >{char}</div>
+      <div column={index} key={idGenerator.next().value} >{char}</div>
     );
     const keys = props.outputCharKeys;
   
@@ -120,7 +117,7 @@ class InputArea extends React.Component {
 function * infiniteShipIdGenerator() {
   let idHalf = 0;
   while(true) {
-    yield 'ship' + (idHalf++).toString;
+    yield 'ship' + (idHalf++).toString();
   }
 }
 
@@ -165,8 +162,8 @@ class Game extends React.Component {
 
     this.state = {
       input: 'testt',
-      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, shipIdGenerator.next())}),
-      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, shipIdGenerator.next())}),
+      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, shipIdGenerator.next().value)}),
+      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, shipIdGenerator.next().value)}),
     };
 
     this.handleInputChange = this.handleInputChange.bind(this);
@@ -177,7 +174,6 @@ class Game extends React.Component {
     // advances the state of 1 random laser from idle to charging, and all which are charging from charging to firing to idle
     this.setState((state) => {
       // advance states of all charging and firing ships
-
       // find an idle laser and advance its state from idle to charging
       for (const ship of state.allyShips) {
         if (ship.state === 'idle') {  // TODO: be more random
