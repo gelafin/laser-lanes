@@ -178,10 +178,11 @@ class Game extends React.Component {
     this.setState((state) => {
       // advance states of all charging and firing ships
       // find an idle laser and advance its state from idle to charging
-      console.log('before check: ', state.allyShips);
-      state.allyShips[0].advanceState();
-      console.log('after check: ', state.allyShips);
-      
+      // test: continually advancing first laser state
+      let newAllyShips = state.allyShips;
+      newAllyShips[0].advanceState();
+
+      return {allyShips: newAllyShips};
     });
 
     // checks if any firing laser has "collided" with (is in the same lane as) a letter. If no letter or a vowel, it goes through (opposite ship is destroyed, so that row's prop, obtained from an array in state, is updated). If consonant, it is blocked (nothing happens)
@@ -194,7 +195,7 @@ class Game extends React.Component {
   componentDidMount() {
     this.timerID = setInterval(
       () => this.tick(),
-      10000
+      3000
     );
   }
   
