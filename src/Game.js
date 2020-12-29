@@ -66,13 +66,12 @@ function Laser(props) {
 }
 
 function ShipRow(props) {
-  const shipKeys = props.reactKeys;
-  const enemies = shipKeys.map((shipKey, index) => 
-    <Ship isAlly={props.isAlly} state={} column={index} key={shipKey.toString()} />  // TODO: ************ use props.shipStates (array of states). No, can't map over two arrays
+  const shipRow = props.ships.map((ship) => 
+    <Ship isAlly={ship.isAlly} state={ship.getState()} column={'undefined'} key={ship.getId()} />  // need column #?
   );
 
   return (
-      <ul className="game-row">{enemies}</ul>
+      <ul className="game-row">{shipRow}</ul>
   );
 }
 
@@ -118,14 +117,27 @@ class InputArea extends React.Component {
   }
 }
 
+function * infiniteShipIdGenerator() {
+  let idHalf = 0;
+  while(true) {
+    yield 'ship' + (idHalf++).toString;
+  }
+}
+
 class ShipObject {
-  constructor() {
+  constructor(isAlly, id) {
     this.alive = true;
     this.state = 'idle';
+    this.id = id;
+    this.isAlly = isAlly;
   }
 
   getState() {
     return this.state;
+  }
+
+  getId() {
+    return this.id;
   }
 
   advanceState() {
@@ -149,10 +161,12 @@ class Game extends React.Component {
     this.maxColumns = maxColumns;
     this.maxRows = maxRows;
 
+    const shipIdGenerator = infiniteShipIdGenerator();
+
     this.state = {
       input: 'testt',
-      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject()}),
-      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject()}),
+      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, shipIdGenerator.next())}),
+      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, shipIdGenerator.next())}),
     };
 
     this.handleInputChange = this.handleInputChange.bind(this);
@@ -200,29 +214,16 @@ class Game extends React.Component {
     const MAX_COLUMNS = this.maxColumns;
     const MAX_ROWS = this.maxRows;
 
-    // make keys required by React for lists of elements
-    const gameRowItemKeys = new Array(MAX_COLUMNS * MAX_ROWS).fill(0).map((element, index) => index);
-    const enemyKeys = gameRowItemKeys.slice(0, MAX_COLUMNS);
-    const allyKeys = gameRowItemKeys.slice(MAX_COLUMNS, MAX_COLUMNS * 2);
-    const outputCharKeys = gameRowItemKeys.slice(MAX_COLUMNS * 4, MAX_COLUMNS * 5);  
-
-    let allyShipStates = new Array();
-    for (const ship of this.state.allyShips) {
-      allyShipStates.push(ship.getState());
-    }
-
-    let enemyShipStates = new Array();
-    for (const ship of this.state.enemyShips) {
-      enemyShipStates.push(ship.getState());
-    }
+    // make keys required by React for lists of elements. TODO: use something more unlimited, since player can type outside of play area. Else, just restrict typing and give up on validating words
+    const outputCharKeys = new Array(MAX_COLUMNS).fill(0).map((element, index) => index);
 
     return (
       <div className="game-container flex-container">
 
         <div className="visuals-container">
-          <ShipRow isAlly={false} reactKeys={enemyKeys} shipStates={enemyShipStates} />
+          <ShipRow ships={this.state.enemyShips} />
           <OutputArea output={this.state.input} reactKeys={outputCharKeys} />
-          <ShipRow isAlly={true} reactKeys={allyKeys} shipStates={allyShipStates} />
+          <ShipRow ships={this.state.allyShips} />
         </div>
 
         <div>
