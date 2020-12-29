@@ -1,1 +1,2 @@
-line 71
+App.state ships' charging/firing makes no difference in what is rendered
+

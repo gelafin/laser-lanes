@@ -39,18 +39,21 @@ function Laser(props) {
   
   // decide which image to use
   if (laserState === 'charging') {
+    console.log('charging laser');
     if (isAlly) {
       imageSource = allyChargingLaserUrl;
     } else {
       imageSource = enemyChargingLaserUrl;
     }
   } else if (laserState === 'firing') {
+    console.log('firing laser');
     if (isAlly) {
       imageSource = allyFiringLaserUrl;
     } else {
       imageSource = enemyFiringLaserUrl;
     }
   } else {  // laserState is idle
+    console.log('idle laser');
     return (
       <div className="laser"></div>  // empty space with the appropriate width
     );
@@ -64,7 +67,7 @@ function Laser(props) {
 
 function ShipRow(props) {
   const shipRow = props.ships.map((ship) => 
-    <Ship isAlly={ship.isAlly} state={ship.getState()} column={'undefined'} key={ship.getId()} />  // need column #?
+    <Ship isAlly={ship.isAlly} state={ship.getState()} key={ship.getId()} />  // need column #?
   );
 
   return (
@@ -175,12 +178,10 @@ class Game extends React.Component {
     this.setState((state) => {
       // advance states of all charging and firing ships
       // find an idle laser and advance its state from idle to charging
-      for (const ship of state.allyShips) {
-        if (ship.state === 'idle') {  // TODO: be more random
-          ship.advanceState();
-        }
-      }
-
+      console.log('before check: ', state.allyShips);
+      state.allyShips[0].advanceState();
+      console.log('after check: ', state.allyShips);
+      
     });
 
     // checks if any firing laser has "collided" with (is in the same lane as) a letter. If no letter or a vowel, it goes through (opposite ship is destroyed, so that row's prop, obtained from an array in state, is updated). If consonant, it is blocked (nothing happens)
@@ -193,7 +194,7 @@ class Game extends React.Component {
   componentDidMount() {
     this.timerID = setInterval(
       () => this.tick(),
-      3000
+      10000
     );
   }
   
