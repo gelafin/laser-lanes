@@ -7,7 +7,7 @@ function Ship(props) {
 
   if (!props.isAlly) {  // enemy ships have lasers below them
     return (
-      <div>
+      <div className="ship">
         <img
           src={ props.isAlly ? allyImgUrl : enemyImgUrl }
         />
@@ -16,7 +16,7 @@ function Ship(props) {
     );  
   } else {
     return (
-      <div>
+      <div className="ship">
         <Laser isAlly = {true} laserState={props.state} />
         <img
           src={ props.isAlly ? allyImgUrl : enemyImgUrl }
@@ -39,21 +39,18 @@ function Laser(props) {
   
   // decide which image to use
   if (laserState === 'charging') {
-    console.log('charging laser');
     if (isAlly) {
       imageSource = allyChargingLaserUrl;
     } else {
       imageSource = enemyChargingLaserUrl;
     }
   } else if (laserState === 'firing') {
-    console.log('firing laser');
     if (isAlly) {
       imageSource = allyFiringLaserUrl;
     } else {
       imageSource = enemyFiringLaserUrl;
     }
   } else {  // laserState is idle
-    console.log('idle laser');
     return (
       <div className="laser"></div>  // empty space with the appropriate width
     );
@@ -66,6 +63,11 @@ function Laser(props) {
 }
 
 function ShipRow(props) {
+  // debugging
+  if (props.ships[0].isAlly) {
+    console.log('     ShipRow receives ', props.ships[0].getState());
+  }
+
   const shipRow = props.ships.map((ship) => 
     <Ship isAlly={ship.isAlly} state={ship.getState()} key={ship.getId()} />  // need column #?
   );
@@ -142,10 +144,13 @@ class ShipObject {
 
   advanceState() {
     if (this.state === 'idle') {
+      console.log('is idle, will charge');
       this.state = 'charging';
     } else if (this.state === 'charging') {
+      console.log('is charging, will fire');
       this.state = 'firing';
     } else {
+      console.log('is firing, will idle');
       this.state = 'idle';
     }
   }
@@ -170,10 +175,11 @@ class Game extends React.Component {
     };
 
     this.handleInputChange = this.handleInputChange.bind(this);
+    this.tick = this.tick.bind(this);
   }
   
   tick() {
-    console.log('ticking');
+    console.log('******ticking');
     // advances the state of 1 random laser from idle to charging, and all which are charging from charging to firing to idle
     this.setState((state) => {
       // advance states of all charging and firing ships
@@ -183,7 +189,7 @@ class Game extends React.Component {
       newAllyShips[0].advanceState();
 
       return {allyShips: newAllyShips};
-    });
+    }, ()=>{console.log(' > finished updating!');});
 
     // checks if any firing laser has "collided" with (is in the same lane as) a letter. If no letter or a vowel, it goes through (opposite ship is destroyed, so that row's prop, obtained from an array in state, is updated). If consonant, it is blocked (nothing happens)
     // informs children of their state through props
@@ -195,7 +201,7 @@ class Game extends React.Component {
   componentDidMount() {
     this.timerID = setInterval(
       () => this.tick(),
-      3000
+      10000
     );
   }
   
@@ -215,6 +221,7 @@ class Game extends React.Component {
     // make keys required by React for lists of elements. TODO: use something more unlimited, since player can type outside of play area. Else, just restrict typing and give up on validating words
     const outputCharKeys = new Array(MAX_COLUMNS).fill(0).map((element, index) => index);
 
+    console.log('     rendering shiprow with ', this.state.allyShips[0].getState());
     return (
       <div className="game-container flex-container">
 

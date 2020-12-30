@@ -1,2 +1,2 @@
-App.state ships' charging/firing makes no difference in what is rendered
+laser states are ticking in reverse?
 
