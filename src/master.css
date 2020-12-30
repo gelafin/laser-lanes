@@ -40,6 +40,7 @@ body {
 
 .game-row > * {
   display: inline-block;
+  flex: none;
   margin-right: 7px;
   width: 60px;
 }

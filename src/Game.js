@@ -65,7 +65,7 @@ function Laser(props) {
 function ShipRow(props) {
   // debugging
   if (props.ships[0].isAlly) {
-    console.log('     ShipRow receives ', props.ships[0].getState());
+    console.log('          in ShipRow ', props.ships[0].getState());
   }
 
   const shipRow = props.ships.map((ship) => 
@@ -144,13 +144,13 @@ class ShipObject {
 
   advanceState() {
     if (this.state === 'idle') {
-      console.log('is idle, will charge');
+      console.log('in ShipObject::advanceState(): is idle, will charge');
       this.state = 'charging';
     } else if (this.state === 'charging') {
-      console.log('is charging, will fire');
+      console.log('in ShipObject::advanceState(): is charging, will fire');
       this.state = 'firing';
     } else {
-      console.log('is firing, will idle');
+      console.log('in ShipObject::advanceState(): is firing, will idle');
       this.state = 'idle';
     }
   }
@@ -186,10 +186,13 @@ class Game extends React.Component {
       // find an idle laser and advance its state from idle to charging
       // test: continually advancing first laser state
       let newAllyShips = state.allyShips;
+      console.log('     in setState(): current state: ', JSON.stringify(this.state));
       newAllyShips[0].advanceState();
+      console.log('     in setState(): state after change: ', JSON.stringify(this.state));
+      console.log('     in setState(): setting to this new ship object: ', newAllyShips[0]);
 
       return {allyShips: newAllyShips};
-    }, ()=>{console.log(' > finished updating!');});
+    }, ()=>{console.log(' > finished setState!');});
 
     // checks if any firing laser has "collided" with (is in the same lane as) a letter. If no letter or a vowel, it goes through (opposite ship is destroyed, so that row's prop, obtained from an array in state, is updated). If consonant, it is blocked (nothing happens)
     // informs children of their state through props
@@ -216,12 +219,11 @@ class Game extends React.Component {
   
   render() {
     const MAX_COLUMNS = this.maxColumns;
-    const MAX_ROWS = this.maxRows;
 
     // make keys required by React for lists of elements. TODO: use something more unlimited, since player can type outside of play area. Else, just restrict typing and give up on validating words
     const outputCharKeys = new Array(MAX_COLUMNS).fill(0).map((element, index) => index);
 
-    console.log('     rendering shiprow with ', this.state.allyShips[0].getState());
+    console.log('     in render(): rendering shiprow with ', this.state.allyShips[0].getState());
     return (
       <div className="game-container flex-container">
 
