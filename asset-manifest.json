@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/laser-lanes/static/css/main.3e07e147.chunk.css",
-    "main.js": "/laser-lanes/static/js/main.1e00e9df.chunk.js",
-    "main.js.map": "/laser-lanes/static/js/main.1e00e9df.chunk.js.map",
+    "main.js": "/laser-lanes/static/js/main.f6e11599.chunk.js",
+    "main.js.map": "/laser-lanes/static/js/main.f6e11599.chunk.js.map",
     "runtime-main.js": "/laser-lanes/static/js/runtime-main.ebe12115.js",
     "runtime-main.js.map": "/laser-lanes/static/js/runtime-main.ebe12115.js.map",
     "static/js/2.7c336a74.chunk.js": "/laser-lanes/static/js/2.7c336a74.chunk.js",
@@ -17,6 +17,6 @@
     "static/js/runtime-main.ebe12115.js",
     "static/js/2.7c336a74.chunk.js",
     "static/css/main.3e07e147.chunk.css",
-    "static/js/main.1e00e9df.chunk.js"
+    "static/js/main.f6e11599.chunk.js"
   ]
 }
