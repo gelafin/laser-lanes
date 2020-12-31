@@ -191,6 +191,9 @@ class Game extends React.Component {
       console.log('     in setState(): state after change: ', JSON.stringify(this.state));
       console.log('     in setState(): setting to this new ship object: ', newAllyShips[0]);
 
+      // test
+      this.sfx.explosion.play();
+
       return {allyShips: newAllyShips};
     }, ()=>{console.log(' > finished setState!');});
 
@@ -204,8 +207,19 @@ class Game extends React.Component {
   componentDidMount() {
     this.timerID = setInterval(
       () => this.tick(),
-      10000
+      5000
     );
+
+    // load sfx (should only load these once, then play them as needed)
+    this.sfx = {
+      explosion: new Audio('./sfx/explosion.mp3'),
+      chargingLaser: new Audio('./sfx/charging_laser.mp3'),
+      firingLaser: new Audio('./sfx/firing_laser.mp3'),
+    };
+
+    // balance audio
+    this.sfx.explosion.volume = 0.1;
+    this.sfx.chargingLaser.volume = 0.1;
   }
   
   componentWillUnmount() {
