@@ -1,2 +1,5 @@
-laser states are ticking in reverse?
+state and audio are ok when deployed but not in localhost. Whatever
 
+detect consonants/vowels
+
+add incoming laser images to Ship

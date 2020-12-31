@@ -1,6 +1,10 @@
 import React from 'react';
 import './master.css';
 
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min) ) + min;
+}
+
 function Ship(props) {
   const enemyImgUrl = 'https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg';
   const allyImgUrl = 'https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg';
@@ -146,12 +150,15 @@ class ShipObject {
     if (this.state === 'idle') {
       console.log('in ShipObject::advanceState(): is idle, will charge');
       this.state = 'charging';
+      return this.state;
     } else if (this.state === 'charging') {
       console.log('in ShipObject::advanceState(): is charging, will fire');
       this.state = 'firing';
+      return this.state;
     } else {
       console.log('in ShipObject::advanceState(): is firing, will idle');
       this.state = 'idle';
+      return this.state;
     }
   }
 }
@@ -165,6 +172,7 @@ class Game extends React.Component {
 
     this.maxColumns = maxColumns;
     this.maxRows = maxRows;
+    const allLanes = Array.from(new Array(maxColumns).keys());
 
     const shipIdGenerator = infiniteShipIdGenerator();
 
@@ -172,42 +180,74 @@ class Game extends React.Component {
       input: 'testt',
       allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, shipIdGenerator.next().value)}),
       enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, shipIdGenerator.next().value)}),
+
+      // track lane number of each ship in a state. Updated by advanceShipState
+      allyShipStates: {
+        firingShips: new Array(),
+        chargingShips: new Array(),
+        idleShips: Array.from(allLanes)
+      },
+      enemyShipStates: {
+        firingShips: new Array(),
+        chargingShips: new Array(),
+        idleShips: Array.from(allLanes)
+      }
     };
 
     this.handleInputChange = this.handleInputChange.bind(this);
     this.tick = this.tick.bind(this);
+    this.advanceShipState = this.advanceShipState.bind(this);
   }
   
+  advanceShipState(ships, lane) {
+    // call the ship object's advanceState and update the Game state lists of all firing, charging, and idle lasers
+    const newState = ships[lane].advanceState();
+    const shipStateGroup = ships[lane].isAlly ? 'allyShipStates' : 'enemyShipStates';
+
+    if (newState === 'idle') {
+      this.state[shipStateGroup].idleShips.push(lane);
+      this.state[shipStateGroup].firingShips.pop(lane);
+    } else if (newState === 'charging') {
+      this.state[shipStateGroup].chargingShips.push(lane);
+      this.state[shipStateGroup].idleShips.pop(lane);
+    } else {
+      this.state[shipStateGroup].firingShips.push(lane);
+      this.state[shipStateGroup].chargingShips.pop(lane);
+    }
+  }
+
   tick() {
     console.log('******ticking');
-    // advances the state of 1 random laser from idle to charging, and all which are charging from charging to firing to idle
+    // test
+    this.sfx.explosion.play().catch(()=>{console.log('*****ERROR: audio play() promise rejected. Click into the text box--or else this is localhost');});
+
     this.setState((state) => {
       // advance states of all charging and firing ships
-      // find an idle laser and advance its state from idle to charging
-      // test: continually advancing first laser state
-      let newAllyShips = state.allyShips;
-      console.log('     in setState(): current state: ', JSON.stringify(this.state));
-      newAllyShips[0].advanceState();
-      console.log('     in setState(): state after change: ', JSON.stringify(this.state));
-      console.log('     in setState(): setting to this new ship object: ', newAllyShips[0]);
+        // for any ships that just fired, process a laser fire
+          // check if there is a vowel or consonant in that lane
+          // if cons, it was blocked. Change laser state to idle
+          // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
 
-      // test
-      this.sfx.explosion.play();
+      // advance the state of 1 random idle laser per side to charging
+      const randomIdleAllyLane = randomInt(0, state.allyShipStates.idleShips.length);
+      const randomIdleEnemyLane = randomInt(0, state.enemyShipStates.idleShips.length);
 
-      return {allyShips: newAllyShips};
+      let newAllyShips = [...state.allyShips];
+      this.advanceShipState(newAllyShips, randomIdleAllyLane);
+      console.log('     in setState(): setting state with this new ally ship: ', newAllyShips[randomIdleAllyLane], ' in lane ', randomIdleAllyLane);
+
+      let newEnemyShips = [...state.enemyShips];
+      this.advanceShipState(newEnemyShips, randomIdleEnemyLane);
+      console.log('     in setState(): setting state with this new enemy ship: ', newAllyShips[randomIdleEnemyLane], ' in lane ', randomIdleEnemyLane);
+
+      return {allyShips: newAllyShips, enemyShips: newEnemyShips};
     }, ()=>{console.log(' > finished setState!');});
-
-    // checks if any firing laser has "collided" with (is in the same lane as) a letter. If no letter or a vowel, it goes through (opposite ship is destroyed, so that row's prop, obtained from an array in state, is updated). If consonant, it is blocked (nothing happens)
-    // informs children of their state through props
-
-    // (in LaserRow, render checks props for the appropriate image)
-    // (in AllyRow and EnemyRow, render checks props for alive and renders blank if not alive)
   }
   
   componentDidMount() {
     this.timerID = setInterval(
       () => this.tick(),
-      5000
+      10000
     );
 
     // load sfx (should only load these once, then play them as needed)
