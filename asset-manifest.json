@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/laser-lanes/static/css/main.3e07e147.chunk.css",
+    "main.js": "/laser-lanes/static/js/main.1e00e9df.chunk.js",
+    "main.js.map": "/laser-lanes/static/js/main.1e00e9df.chunk.js.map",
+    "runtime-main.js": "/laser-lanes/static/js/runtime-main.ebe12115.js",
+    "runtime-main.js.map": "/laser-lanes/static/js/runtime-main.ebe12115.js.map",
+    "static/js/2.7c336a74.chunk.js": "/laser-lanes/static/js/2.7c336a74.chunk.js",
+    "static/js/2.7c336a74.chunk.js.map": "/laser-lanes/static/js/2.7c336a74.chunk.js.map",
+    "static/js/3.4e13c3fd.chunk.js": "/laser-lanes/static/js/3.4e13c3fd.chunk.js",
+    "static/js/3.4e13c3fd.chunk.js.map": "/laser-lanes/static/js/3.4e13c3fd.chunk.js.map",
+    "index.html": "/laser-lanes/index.html",
+    "static/css/main.3e07e147.chunk.css.map": "/laser-lanes/static/css/main.3e07e147.chunk.css.map",
+    "static/js/2.7c336a74.chunk.js.LICENSE.txt": "/laser-lanes/static/js/2.7c336a74.chunk.js.LICENSE.txt"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.ebe12115.js",
+    "static/js/2.7c336a74.chunk.js",
+    "static/css/main.3e07e147.chunk.css",
+    "static/js/main.1e00e9df.chunk.js"
+  ]
+}
