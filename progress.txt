@@ -1,4 +1,4 @@
-fix issue where charging/firing lasers do not always get updated. FIRST, check deploy (already updated) to see if it's working anyway
+advanceShipState() mistakenly uses lane number as index for splice. So instead of just splice, need to use indexof lane and then splice. Also best practice to use setState rather than accessing directly
 
 detect consonants/vowels
 

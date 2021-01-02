@@ -158,16 +158,15 @@ class ShipObject {
     if (this.state === 'idle') {
       console.log('in ShipObject::advanceState(): is idle, will charge');
       this.state = 'charging';
-      return this.state;
     } else if (this.state === 'charging') {
       console.log('in ShipObject::advanceState(): is charging, will fire');
       this.state = 'firing';
-      return this.state;
     } else {
       console.log('in ShipObject::advanceState(): is firing, will idle');
       this.state = 'idle';
-      return this.state;
     }
+
+    return this.state;
   }
 }
 
@@ -209,30 +208,34 @@ class Game extends React.Component {
       }
     };
 
-    console.log('compare initial state...');
-    printObject(this.state.allyShipStates);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.tick = this.tick.bind(this);
     this.advanceShipState = this.advanceShipState.bind(this);
   }
   
   advanceShipState(ships, lane) {
-    console.log('...with state in advanceShipState ');
-    printObject(this.state.allyShipStates);
-
     // call the ship object's advanceState and update the Game state lists of all firing, charging, and idle lasers
     const newState = ships[lane].advanceState();
     const shipStateGroup = ships[lane].isAlly ? 'allyShipStates' : 'enemyShipStates';
 
+    // TODO: apply changes after if/else block, not inside it. Also call setState
+
     if (newState === 'idle') {
+      const indexInFiringShips = this.state[shipStateGroup].firingShips.indexOf(lane);
+
       this.state[shipStateGroup].idleShips.push(lane);
-      this.state[shipStateGroup].firingShips.pop(lane);
+      this.state[shipStateGroup].firingShips.splice(indexInFiringShips, 1);
+
     } else if (newState === 'charging') {
+      const indexInIdleShips = this.state[shipStateGroup].idleShips.indexOf(lane);
+
       this.state[shipStateGroup].chargingShips.push(lane);
-      this.state[shipStateGroup].idleShips.pop(lane);
+      this.state[shipStateGroup].idleShips.splice(indexInIdleShips, 1);
     } else {
+      const indexInChargingShips = this.state[shipStateGroup].idleShips.indexOf(lane);
+      
       this.state[shipStateGroup].firingShips.push(lane);
-      this.state[shipStateGroup].chargingShips.pop(lane);
+      this.state[shipStateGroup].chargingShips.splice(indexInChargingShips, 1);
     }
   }
 
@@ -242,8 +245,6 @@ class Game extends React.Component {
     this.sfx.explosion.play().catch(()=>{console.log('*****ERROR: audio play() promise rejected. Click into the text box--or else this is localhost');});
 
     this.setState((state) => {
-      console.log('compare state in tick()::setState()...');
-      printObject(state.allyShipStates);
 
       // advance states of all charging and firing ships
         // for any ships that just fired, process a laser fire
@@ -252,11 +253,19 @@ class Game extends React.Component {
           // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
 
       // advance the state of 1 random idle laser per side to charging
-      const randomIdleAllyLane = randomInt(0, state.allyShipStates.idleShips.length);
-      const randomIdleEnemyLane = randomInt(0, state.enemyShipStates.idleShips.length);
+      // get random indices for shipStates arrays
+      const randomIdleAllyIndex = randomInt(0, state.allyShipStates.idleShips.length);
+      const randomIdleEnemyIndex = randomInt(0, state.enemyShipStates.idleShips.length);
 
+      // use those indices to get a random idle ship's lane number
+      const randomIdleAllyLane = state.allyShipStates.idleShips[randomIdleAllyIndex];
+      const randomIdleEnemyLane = state.enemyShipStates.idleShips[randomIdleEnemyIndex];
+
+      // make a copy of allyShips
       let newAllyShips = [...state.allyShips];
+
       this.advanceShipState(newAllyShips, randomIdleAllyLane);
+
       console.log('\tin setState(): just changed this 1 idle ally ship to charging: ');
       newAllyShips[randomIdleAllyLane].print();
       console.log('\tin lane ', randomIdleAllyLane);
@@ -301,7 +310,6 @@ class Game extends React.Component {
     // make keys required by React for lists of elements. TODO: use something more unlimited, since player can type outside of play area. Else, just restrict typing and give up on validating words
     const outputCharKeys = new Array(MAX_COLUMNS).fill(0).map((element, index) => index);
 
-    console.log('     in render(): rendering shiprow with ', this.state.allyShips[0].getState());
     return (
       <div className="game-container flex-container">
 
