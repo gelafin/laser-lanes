@@ -146,6 +146,14 @@ class ShipObject {
     return this.id;
   }
 
+  print() {
+    console.log('printing ship...');
+    console.log('\tid:', this.getId());
+    console.log('\tstate:', this.getState());
+    console.log('\tisAlly:', this.isAlly);
+    console.log('\talive:', this.alive);
+  }
+
   advanceState() {
     if (this.state === 'idle') {
       console.log('in ShipObject::advanceState(): is idle, will charge');
@@ -160,6 +168,13 @@ class ShipObject {
       this.state = 'idle';
       return this.state;
     }
+  }
+}
+
+function printObject(object) {
+  console.log('\n\t', 'type: ', typeof object);
+  for (const key in object) {
+    console.log('\t', key, ':', object[key]);
   }
 }
 
@@ -194,12 +209,17 @@ class Game extends React.Component {
       }
     };
 
+    console.log('compare initial state...');
+    printObject(this.state.allyShipStates);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.tick = this.tick.bind(this);
     this.advanceShipState = this.advanceShipState.bind(this);
   }
   
   advanceShipState(ships, lane) {
+    console.log('...with state in advanceShipState ');
+    printObject(this.state.allyShipStates);
+
     // call the ship object's advanceState and update the Game state lists of all firing, charging, and idle lasers
     const newState = ships[lane].advanceState();
     const shipStateGroup = ships[lane].isAlly ? 'allyShipStates' : 'enemyShipStates';
@@ -222,6 +242,9 @@ class Game extends React.Component {
     this.sfx.explosion.play().catch(()=>{console.log('*****ERROR: audio play() promise rejected. Click into the text box--or else this is localhost');});
 
     this.setState((state) => {
+      console.log('compare state in tick()::setState()...');
+      printObject(state.allyShipStates);
+
       // advance states of all charging and firing ships
         // for any ships that just fired, process a laser fire
           // check if there is a vowel or consonant in that lane
@@ -234,11 +257,12 @@ class Game extends React.Component {
 
       let newAllyShips = [...state.allyShips];
       this.advanceShipState(newAllyShips, randomIdleAllyLane);
-      console.log('     in setState(): setting state with this new ally ship: ', newAllyShips[randomIdleAllyLane], ' in lane ', randomIdleAllyLane);
+      console.log('\tin setState(): just changed this 1 idle ally ship to charging: ');
+      newAllyShips[randomIdleAllyLane].print();
+      console.log('\tin lane ', randomIdleAllyLane);
 
       let newEnemyShips = [...state.enemyShips];
       this.advanceShipState(newEnemyShips, randomIdleEnemyLane);
-      console.log('     in setState(): setting state with this new enemy ship: ', newAllyShips[randomIdleEnemyLane], ' in lane ', randomIdleEnemyLane);
 
       return {allyShips: newAllyShips, enemyShips: newEnemyShips};
     }, ()=>{console.log(' > finished setState!');});

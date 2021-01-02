@@ -1,4 +1,4 @@
-state and audio are ok when deployed but not in localhost. Whatever
+fix issue where charging/firing lasers do not always get updated. FIRST, check deploy (already updated) to see if it's working anyway
 
 detect consonants/vowels
 
