@@ -1,4 +1,5 @@
 advanceShipState uses lane number as index at the top. Should either require passing index as well or give ship objects a lane variable
+  -> for some reason, 
 
 detect consonants/vowels
 

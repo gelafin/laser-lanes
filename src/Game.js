@@ -214,14 +214,17 @@ class Game extends React.Component {
     this.handleInputChange = this.handleInputChange.bind(this);
     this.tick = this.tick.bind(this);
     this.advanceShipState = this.advanceShipState.bind(this);
+    this.fireAllChargingShips = this.fireAllChargingShips.bind(this);
   }
   
-  advanceShipState(ships, lane) {
-    // mutate ships array at index of ship with given lane number
+  advanceShipState(ships, index) {
+    // param: ships: a copy of either state.allyShips or state.enemyShips
+    // mutate ships array at index of ship with given index number
     // calls the ship object's advanceState and updates the Game state lists of all firing, charging, and idle lasers
-    // requires giving the array of ships so it's flexible enough to work with copies of arrays of current game ships
+    // requires giving the array of ships so it works on copies of Game.state.allyShips (and enemyShips)
 
-    const lane = ships[index].getLane();
+    const lane = ships[index].getLane();  // use this when resolving GitHub issue #1
+
     const newState = ships[index].advanceState();
     const allegiance = ships[index].isAlly ? 'allyShipStates' : 'enemyShipStates';
 
@@ -255,36 +258,40 @@ class Game extends React.Component {
     this.setState({ [[allegiance][oldStateGroup]]: oldStateGroupArray });
   }
 
-  /*
-  // TODO: this bind
   fireAllChargingShips() {
     // advances states of all charging ships to firing and processes consequences of laser strikes
 
-    // advance state of all ally charging ships to firing!
-    for (const shipIndex of state.allyShipStates.chargingShips) {
-      this.advanceShipState(state.allyShipStates.chargingShips);
+    if (this.state.allyShipStates.chargingShips.length > 0) {  // if there are any charging ships
+      // use those indices to get a random idle ship's lane number
+      const randomIdleAllyLane = state.allyShipStates.idleShips[randomIdleAllyIndex];
 
-      // for any ships that just fired, process a laser fire
-        // check if there is a vowel or consonant in that lane
-        // if cons, it was blocked. Change laser state to idle
-        // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
+      // make a copy of state.allyShips
+      let allyShipsCopy = [...this.state.allyShips];
 
-        // change state back to idle
-        this.advanceShipState();
+      // advance state of all ally charging ships to firing
+      for (const shipIndex of this.state.allyShipStates.chargingShips.keys()) {
+        this.advanceShipState(allyShipsCopy, shipIndex);  // TODO: ************************ lane number or index?
+
+        // to process a laser fire...
+          // check if there is a vowel or consonant in that lane
+          // if cons, it was blocked. Change laser state to idle
+          // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
+
+          // change state back to idle
+          this.advanceShipState(this.state.allyShipStates.chargingShips, shipIndex);
+      }
     }
 
-    for (const shipIndex of state.enemyShipStates.chargingShips) {
 
-    }
-    
+    // TODO: also do this for all charging enemy ships    
   }
-
-  */
 
   tick() {
     console.log('******ticking');
     // test
     this.sfx.explosion.play().catch(()=>{console.log('*****ERROR: audio play() promise rejected. Click into the text box--or else this is localhost');});
+
+    this.fireAllChargingShips();
 
     this.setState((state) => {
 
