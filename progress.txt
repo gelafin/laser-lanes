@@ -1,5 +1,5 @@
+advanceShipState uses lane number as index at the top. Should either require passing index as well or give ship objects a lane variable
+
 detect consonants/vowels
 
 add incoming laser images to Ship
-
-In advanceShipState(), best practice to use setState rather than accessing directly

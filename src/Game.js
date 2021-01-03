@@ -67,13 +67,8 @@ function Laser(props) {
 }
 
 function ShipRow(props) {
-  // debugging
-  if (props.ships[0].isAlly) {
-    console.log('          in ShipRow ', props.ships[0].getState());
-  }
-
   const shipRow = props.ships.map((ship) => 
-    <Ship isAlly={ship.isAlly} state={ship.getState()} key={ship.getId()} />  // need column #?
+    <Ship isAlly={ship.isAlly} state={ship.getState()} key={ship.getId()} />
   );
 
   return (
@@ -131,11 +126,14 @@ function * infiniteShipIdGenerator() {
 }
 
 class ShipObject {
-  constructor(isAlly, id) {
+  constructor(isAlly, laneNumber) {
     this.alive = true;
     this.state = 'idle';
-    this.id = id;
+    this.lane = laneNumber;
     this.isAlly = isAlly;
+
+    const idPrefix = isAlly ? 'ally' : 'enemy';
+    this.id = idPrefix + laneNumber.toString();
   }
 
   getState() {
@@ -146,11 +144,15 @@ class ShipObject {
     return this.id;
   }
 
+  getLane() {
+    return this.lane;
+  }
+
   print() {
-    console.log('printing ship...');
     console.log('\tid:', this.getId());
-    console.log('\tstate:', this.getState());
     console.log('\tisAlly:', this.isAlly);
+    console.log('\tlane:', this.getLane());
+    console.log('\tstate:', this.getState());
     console.log('\talive:', this.alive);
   }
 
@@ -188,12 +190,13 @@ class Game extends React.Component {
     this.maxRows = maxRows;
     const allLanes = Array.from(new Array(maxColumns).keys());
 
-    const shipIdGenerator = infiniteShipIdGenerator();
+    const allyLaneNumberIterator = allLanes.values();
+    const enemyLaneNumberIterator = allLanes.values();
 
     this.state = {
       input: 'testt',
-      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, shipIdGenerator.next().value)}),
-      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, shipIdGenerator.next().value)}),
+      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, allyLaneNumberIterator.next().value)}),
+      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, enemyLaneNumberIterator.next().value)}),
 
       // track lane number of each ship in a state. Updated by advanceShipState
       allyShipStates: {
@@ -214,11 +217,14 @@ class Game extends React.Component {
   }
   
   advanceShipState(ships, lane) {
-    // call the ship object's advanceState and update the Game state lists of all firing, charging, and idle lasers
-    const newState = ships[lane].advanceState();
-    const allegiance = ships[lane].isAlly ? 'allyShipStates' : 'enemyShipStates';
+    // mutate ships array at index of ship with given lane number
+    // calls the ship object's advanceState and updates the Game state lists of all firing, charging, and idle lasers
+    // requires giving the array of ships so it's flexible enough to work with copies of arrays of current game ships
 
-    // TODO: best practice to apply changes after if/else block, not inside it
+    const lane = ships[index].getLane();
+    const newState = ships[index].advanceState();
+    const allegiance = ships[index].isAlly ? 'allyShipStates' : 'enemyShipStates';
+
     let removalIndex;
     let newStateGroup;
     let oldStateGroup;
@@ -249,18 +255,38 @@ class Game extends React.Component {
     this.setState({ [[allegiance][oldStateGroup]]: oldStateGroupArray });
   }
 
+  /*
+  // TODO: this bind
+  fireAllChargingShips() {
+    // advances states of all charging ships to firing and processes consequences of laser strikes
+
+    // advance state of all ally charging ships to firing!
+    for (const shipIndex of state.allyShipStates.chargingShips) {
+      this.advanceShipState(state.allyShipStates.chargingShips);
+
+      // for any ships that just fired, process a laser fire
+        // check if there is a vowel or consonant in that lane
+        // if cons, it was blocked. Change laser state to idle
+        // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
+
+        // change state back to idle
+        this.advanceShipState();
+    }
+
+    for (const shipIndex of state.enemyShipStates.chargingShips) {
+
+    }
+    
+  }
+
+  */
+
   tick() {
     console.log('******ticking');
     // test
     this.sfx.explosion.play().catch(()=>{console.log('*****ERROR: audio play() promise rejected. Click into the text box--or else this is localhost');});
 
     this.setState((state) => {
-
-      // advance states of all charging and firing ships
-        // for any ships that just fired, process a laser fire
-          // check if there is a vowel or consonant in that lane
-          // if cons, it was blocked. Change laser state to idle
-          // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
 
       // advance the state of 1 random idle laser per side to charging
       // get random indices for shipStates arrays
@@ -271,15 +297,11 @@ class Game extends React.Component {
       const randomIdleAllyLane = state.allyShipStates.idleShips[randomIdleAllyIndex];
       const randomIdleEnemyLane = state.enemyShipStates.idleShips[randomIdleEnemyIndex];
 
-      // make a copy of allyShips
+      // make a copy of allyShips and mutate it so one of its idle ships is now charging
       let newAllyShips = [...state.allyShips];
-
       this.advanceShipState(newAllyShips, randomIdleAllyLane);
 
-      console.log('\tin setState(): just changed this 1 idle ally ship to charging: ');
-      newAllyShips[randomIdleAllyLane].print();
-      console.log('\tin lane ', randomIdleAllyLane);
-
+      // make a copy of enemyShips and mutate it so one of its idle ships is now charging
       let newEnemyShips = [...state.enemyShips];
       this.advanceShipState(newEnemyShips, randomIdleEnemyLane);
 
