@@ -237,12 +237,6 @@ class Game extends React.Component {
       removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
     }
 
-    // apply changes by directly accessing and mutating--TODO: not ideal; see GitHub issue #1
-    this.state[allegiance][newStateGroup].push(lane);
-    this.state[allegiance][oldStateGroup].splice(removalIndex, 1);
-
-    /* ready to test
-
     // make copies of state arrays, then assign the new ones with setState
     let newStateGroupArray = this.state[allegiance][newStateGroup];
     let oldStateGroupArray = this.state[allegiance][oldStateGroup];
@@ -253,8 +247,6 @@ class Game extends React.Component {
 
     this.setState({ [[allegiance][newStateGroup]]: newStateGroupArray });
     this.setState({ [[allegiance][oldStateGroup]]: oldStateGroupArray });
-
-    */
   }
 
   tick() {
