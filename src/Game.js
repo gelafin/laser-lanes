@@ -197,13 +197,13 @@ class Game extends React.Component {
 
       // track lane number of each ship in a state. Updated by advanceShipState
       allyShipStates: {
-        firingShips: new Array(),
-        chargingShips: new Array(),
+        firingShips: [],
+        chargingShips: [],
         idleShips: Array.from(allLanes)
       },
       enemyShipStates: {
-        firingShips: new Array(),
-        chargingShips: new Array(),
+        firingShips: [],
+        chargingShips: [],
         idleShips: Array.from(allLanes)
       }
     };
@@ -216,27 +216,45 @@ class Game extends React.Component {
   advanceShipState(ships, lane) {
     // call the ship object's advanceState and update the Game state lists of all firing, charging, and idle lasers
     const newState = ships[lane].advanceState();
-    const shipStateGroup = ships[lane].isAlly ? 'allyShipStates' : 'enemyShipStates';
+    const allegiance = ships[lane].isAlly ? 'allyShipStates' : 'enemyShipStates';
 
-    // TODO: apply changes after if/else block, not inside it. Also call setState
+    // TODO: best practice to apply changes after if/else block, not inside it
+    let removalIndex;
+    let newStateGroup;
+    let oldStateGroup;
 
     if (newState === 'idle') {
-      const indexInFiringShips = this.state[shipStateGroup].firingShips.indexOf(lane);
-
-      this.state[shipStateGroup].idleShips.push(lane);
-      this.state[shipStateGroup].firingShips.splice(indexInFiringShips, 1);
-
+      newStateGroup = 'idleShips';
+      oldStateGroup = 'firingShips';
+      removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
     } else if (newState === 'charging') {
-      const indexInIdleShips = this.state[shipStateGroup].idleShips.indexOf(lane);
-
-      this.state[shipStateGroup].chargingShips.push(lane);
-      this.state[shipStateGroup].idleShips.splice(indexInIdleShips, 1);
+      newStateGroup = 'chargingShips';
+      oldStateGroup = 'idleShips';
+      removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
     } else {
-      const indexInChargingShips = this.state[shipStateGroup].idleShips.indexOf(lane);
-      
-      this.state[shipStateGroup].firingShips.push(lane);
-      this.state[shipStateGroup].chargingShips.splice(indexInChargingShips, 1);
+      newStateGroup = 'firingShips';
+      oldStateGroup = 'chargingShips';
+      removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
     }
+
+    // apply changes by directly accessing and mutating--TODO: not ideal; see GitHub issue #1
+    this.state[allegiance][newStateGroup].push(lane);
+    this.state[allegiance][oldStateGroup].splice(removalIndex, 1);
+
+    /* ready to test
+
+    // make copies of state arrays, then assign the new ones with setState
+    let newStateGroupArray = this.state[allegiance][newStateGroup];
+    let oldStateGroupArray = this.state[allegiance][oldStateGroup];
+
+    // make the "advance ship state" changes to the new arrays
+    newStateGroupArray.push(lane);
+    oldStateGroupArray.splice(removalIndex, 1);
+
+    this.setState({ [[allegiance][newStateGroup]]: newStateGroupArray });
+    this.setState({ [[allegiance][oldStateGroup]]: oldStateGroupArray });
+
+    */
   }
 
   tick() {

@@ -1,5 +1,5 @@
-advanceShipState() mistakenly uses lane number as index for splice. So instead of just splice, need to use indexof lane and then splice. Also best practice to use setState rather than accessing directly
-
 detect consonants/vowels
 
 add incoming laser images to Ship
+
+In advanceShipState(), best practice to use setState rather than accessing directly
