@@ -1,5 +1,8 @@
-advanceShipState uses lane number as index at the top. Should either require passing index as well or give ship objects a lane variable
-  -> for some reason, 
+refactored advanceShipState and Game.state[ship object arrays]
+  -> ship object arrays are now keyed by ID
+    -> Fix: they're actually arrays of objects keyed by id. Need to use reduce() or something.
+      -> easier for constructor to just use lane numbers as keys (don't know ID until after ship object is created), but easier elsewhere to key by ID
+        -> just move it to componentDidMount(), to make ship object and then add it to the object and then add it to state?
 
 detect consonants/vowels
 

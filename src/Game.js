@@ -67,7 +67,7 @@ function Laser(props) {
 }
 
 function ShipRow(props) {
-  const shipRow = props.ships.map((ship) => 
+  const shipRow = Object.values(props.ships).map((ship) => 
     <Ship isAlly={ship.isAlly} state={ship.getState()} key={ship.getId()} />
   );
 
@@ -190,25 +190,38 @@ class Game extends React.Component {
     this.maxRows = maxRows;
     const allLanes = Array.from(new Array(maxColumns).keys());
 
-    const allyLaneNumberIterator = allLanes.values();
-    const enemyLaneNumberIterator = allLanes.values();
+    // track ship objects, keyed by ship ID
+    let initialAllyShips = {};
+    let initialEnemyShips = {};
+    for (const lane of allLanes.values()) {
+      // add an ally ship
+      let newAlly = new ShipObject(true, lane);  // TODO: can use const?
+      initialAllyShips[newAlly.getId()] = newAlly;
 
+      // add an enemy ship
+      let newEnemy = new ShipObject(false, lane);  // TODO: can use const?
+      initialEnemyShips[newEnemy.getId()] = newEnemy;
+    }
+
+    // track ID number of each ship in a given state, for convenience and efficiency elsewhere. Updated by advanceShipState
+    const initialAllyShipStates = {
+        firingShips: [],
+        chargingShips: [],
+        idleShips: Array.from(Object.keys(initialAllyShips))  // keyed by ID
+    };
+
+    const initialEnemyShipStates = {
+        firingShips: [],
+        chargingShips: [],
+        idleShips: Array.from(Object.keys(initialEnemyShips))  // keyed by ID
+    };
+    
     this.state = {
       input: 'testt',
-      allyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(true, allyLaneNumberIterator.next().value)}),
-      enemyShips: new Array(maxColumns).fill().map(() => {return new ShipObject(false, enemyLaneNumberIterator.next().value)}),
-
-      // track lane number of each ship in a state. Updated by advanceShipState
-      allyShipStates: {
-        firingShips: [],
-        chargingShips: [],
-        idleShips: Array.from(allLanes)
-      },
-      enemyShipStates: {
-        firingShips: [],
-        chargingShips: [],
-        idleShips: Array.from(allLanes)
-      }
+      allyShips: initialAllyShips,
+      enemyShips: initialEnemyShips,
+      allyShipStates: initialAllyShipStates,
+      enemyShipStates: initialEnemyShipStates
     };
 
     this.handleInputChange = this.handleInputChange.bind(this);
@@ -217,68 +230,92 @@ class Game extends React.Component {
     this.fireAllChargingShips = this.fireAllChargingShips.bind(this);
   }
   
-  advanceShipState(ships, index) {
-    // param: ships: a copy of either state.allyShips or state.enemyShips
-    // mutate ships array at index of ship with given index number
-    // calls the ship object's advanceState and updates the Game state lists of all firing, charging, and idle lasers
-    // requires giving the array of ships so it works on copies of Game.state.allyShips (and enemyShips)
+  advanceShipState(shipId) {
+    // param: shipId: id of the ship object to be updated
+    // calls the ship object's advanceState and updates both the Game's ship object and lane state lists
 
-    const lane = ships[index].getLane();  // use this when resolving GitHub issue #1
+    // get allegiance-specific variables
+    let ship;
+    let laneStateArray;
+    let shipObjects;
 
-    const newState = ships[index].advanceState();
-    const allegiance = ships[index].isAlly ? 'allyShipStates' : 'enemyShipStates';
+    if (shipId.includes('ally')) {  // if it's an ally ship
+      ship = this.state.allyShips[shipId];
+      laneStateArray = 'allyShipStates';
+      shipObjects = 'allyShips';
+    } else {  // it's an enemy ship
+      ship = this.state.enemyShips[shipId];
+      laneStateArray = 'enemyShipStates';
+      shipObjects = 'enemyShips';
+    }
 
-    let removalIndex;
+    // get convenience variables
+    const shipState = ship.getState();
+
+    /*
+    ======================== 
+    Update ship object state array 
+    ======================== 
+    */
+    let newShipObjects = {...this.state[shipObjects]};
+    newShipObjects[shipId].advanceState();
+    this.setState({ [shipObjects]: newShipObjects });
+
+    /*
+    ======================== 
+    Update lane state arrays 
+    ======================== 
+    */
+    // find which lane state arrays to update
     let newStateGroup;
     let oldStateGroup;
 
-    if (newState === 'idle') {
-      newStateGroup = 'idleShips';
-      oldStateGroup = 'firingShips';
-      removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
-    } else if (newState === 'charging') {
-      newStateGroup = 'chargingShips';
+    if (shipState === 'idle') {
       oldStateGroup = 'idleShips';
-      removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
-    } else {
-      newStateGroup = 'firingShips';
+      newStateGroup = 'chargingShips';
+    } else if (shipState === 'charging') {
       oldStateGroup = 'chargingShips';
-      removalIndex = this.state[allegiance][oldStateGroup].indexOf(lane);
+      newStateGroup = 'firingShips';
+    } else {
+      oldStateGroup = 'firingShips';
+      newStateGroup = 'idleShips';
     }
 
-    // make copies of state arrays, then assign the new ones with setState
-    let newStateGroupArray = this.state[allegiance][newStateGroup];
-    let oldStateGroupArray = this.state[allegiance][oldStateGroup];
+    // now we know which lane state array to remove from, so get the index of this ship
+    const removalIndex = this.state[laneStateArray][oldStateGroup].indexOf(shipId);
 
-    // make the "advance ship state" changes to the new arrays
-    newStateGroupArray.push(lane);
+    // make copies of lane state arrays
+    let newStateGroupArray = this.state[laneStateArray][newStateGroup];
+    let oldStateGroupArray = this.state[laneStateArray][oldStateGroup];
+
+    // make the state advance changes to the copy arrays
+    newStateGroupArray.push(shipId);
     oldStateGroupArray.splice(removalIndex, 1);
 
-    this.setState({ [[allegiance][newStateGroup]]: newStateGroupArray });
-    this.setState({ [[allegiance][oldStateGroup]]: oldStateGroupArray });
+    // set the Game state by replacing lane state arrays with the updated copies
+    this.setState({ [[laneStateArray][newStateGroup]]: newStateGroupArray });
+    this.setState({ [[laneStateArray][oldStateGroup]]: oldStateGroupArray });
   }
 
   fireAllChargingShips() {
     // advances states of all charging ships to firing and processes consequences of laser strikes
 
     if (this.state.allyShipStates.chargingShips.length > 0) {  // if there are any charging ships
-      // use those indices to get a random idle ship's lane number
-      const randomIdleAllyLane = state.allyShipStates.idleShips[randomIdleAllyIndex];
-
-      // make a copy of state.allyShips
-      let allyShipsCopy = [...this.state.allyShips];
 
       // advance state of all ally charging ships to firing
-      for (const shipIndex of this.state.allyShipStates.chargingShips.keys()) {
-        this.advanceShipState(allyShipsCopy, shipIndex);  // TODO: ************************ lane number or index?
+      for (const shipId of this.state.allyShipStates.chargingShips.values()) {
+        
+        // advance state to firing
+        this.advanceShipState(shipId);
 
-        // to process a laser fire...
+        // to process a laser fire, make a setTimeout with c/b to...
+          // (props are just the whole ships, so the image will change automatically)
           // check if there is a vowel or consonant in that lane
           // if cons, it was blocked. Change laser state to idle
           // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
 
           // change state back to idle
-          this.advanceShipState(this.state.allyShipStates.chargingShips, shipIndex);
+          this.advanceShipState(shipId);
       }
     }
 
@@ -296,24 +333,18 @@ class Game extends React.Component {
     this.setState((state) => {
 
       // advance the state of 1 random idle laser per side to charging
-      // get random indices for shipStates arrays
+      // get random indices for lane states arrays
       const randomIdleAllyIndex = randomInt(0, state.allyShipStates.idleShips.length);
       const randomIdleEnemyIndex = randomInt(0, state.enemyShipStates.idleShips.length);
 
-      // use those indices to get a random idle ship's lane number
-      const randomIdleAllyLane = state.allyShipStates.idleShips[randomIdleAllyIndex];
-      const randomIdleEnemyLane = state.enemyShipStates.idleShips[randomIdleEnemyIndex];
+      // use those indices to get a random idle ship's ID
+      const randomIdleAllyId = state.allyShipStates.idleShips[randomIdleAllyIndex];
+      const randomIdleEnemyId = state.enemyShipStates.idleShips[randomIdleEnemyIndex];
 
-      // make a copy of allyShips and mutate it so one of its idle ships is now charging
-      let newAllyShips = [...state.allyShips];
-      this.advanceShipState(newAllyShips, randomIdleAllyLane);
-
-      // make a copy of enemyShips and mutate it so one of its idle ships is now charging
-      let newEnemyShips = [...state.enemyShips];
-      this.advanceShipState(newEnemyShips, randomIdleEnemyLane);
-
-      return {allyShips: newAllyShips, enemyShips: newEnemyShips};
-    }, ()=>{console.log(' > finished setState!');});
+      // advance the states from idle to charging
+      this.advanceShipState(randomIdleAllyId);
+      this.advanceShipState(randomIdleEnemyId);
+    }, ()=>{console.log(' > finished setState! Best to call advanceShipState here');});
   }
   
   componentDidMount() {
