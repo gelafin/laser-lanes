@@ -32,11 +32,11 @@ function Ship(props) {
 
 function Laser(props) {  
   // url variables
-  const allyChargingLaserUrl = 'https://live.staticflickr.com/65535/50723947808_9809886476_t.jpg';
-  const allyFiringLaserUrl = 'https://live.staticflickr.com/65535/50724684431_bffd593096_t.jpg';
+  const allyChargingLaserUrl = 'https://live.staticflickr.com/65535/50723947808_35ba1cd9e7_o.png';
+  const allyFiringLaserUrl = 'https://live.staticflickr.com/65535/50724684431_e854d32aa9_o.png';
   const enemyChargingLaserUrl = 'https://live.staticflickr.com/65535/50724684381_4ca6f500da_t.jpg';
   const enemyFiringLaserUrl = 'https://live.staticflickr.com/65535/50723947768_2ab5054c24_t.jpg';
-  
+
   let laserState = props.laserState;
   const isAlly = props.isAlly;
   let imageSource;
@@ -308,7 +308,7 @@ class Game extends React.Component {
         // advance state to firing
         this.advanceShipState(shipId);
 
-        // to process a laser fire, make a setTimeout with c/b to...
+        // to process a laser fire, change to firing and make a callback to finish firing
           // (props are just the whole ships, so the image will change automatically)
           // check if there is a vowel or consonant in that lane
           // if cons, it was blocked. Change laser state to idle
