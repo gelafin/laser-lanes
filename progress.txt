@@ -1,5 +1,9 @@
 finish fireAllChargingShips
-
-detect consonants/vowels
+  - when ship dies...
+    - set .isAlive so ship remains as a tombstone
+    - update <Ship/> with empty div with same class for same size
+    - remove from pool of idle lasers
 
 add incoming laser images to Ship
+
+size lasers (may need to update url for enemy lasers, since Flikr changed it for ally ones)

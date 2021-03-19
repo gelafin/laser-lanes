@@ -5,6 +5,13 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min) ) + min;
 }
 
+function isVowel(char) {
+  /*
+  thx https://stackoverflow.com/a/5488098/14257952
+  */
+  return ['a', 'e', 'i', 'o', 'u'].indexOf(char.toLowerCase()) !== -1
+}
+
 function Ship(props) {
   const enemyImgUrl = 'https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg';
   const allyImgUrl = 'https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg';
@@ -172,6 +179,29 @@ class ShipObject {
   }
 }
 
+function getLaneFromShipId(shipId, allegiance) {
+  /*
+  takes a shipId string and optional string allegiance; returns the lane number
+  */
+  let idPrefix;
+
+  // if allegiance was provided, use it; it's more efficient than parsing
+  if (typeof allegiance !== 'undefined') {
+    idPrefix = allegiance;
+  } else {
+    // allegiance isn't known; get it by parsing the ID
+    idPrefix = shipId.includes('ally') ? 'ally': shipId.includes('enemy') ? 'enemy' : 'ERROR';
+
+    if (allegiance === 'ERROR') {
+      console.log('Error parsing ship ID:', shipId);
+      return
+    }
+  }
+
+  const lane = shipId.split(idPrefix)[1];
+  return lane;
+}
+
 function printObject(object) {
   console.log('\n\t', 'type: ', typeof object);
   for (const key in object) {
@@ -228,6 +258,8 @@ class Game extends React.Component {
     this.tick = this.tick.bind(this);
     this.advanceShipState = this.advanceShipState.bind(this);
     this.fireAllChargingShips = this.fireAllChargingShips.bind(this);
+    this.getLetterInLane = this.getLetterInLane.bind(this);
+    this.projectLaserTarget = this.projectLaserTarget.bind(this);
   }
   
   advanceShipState(shipId) {
@@ -297,30 +329,89 @@ class Game extends React.Component {
     this.setState({ [[laneStateArray][oldStateGroup]]: oldStateGroupArray });
   }
 
-  fireAllChargingShips() {
-    // advances states of all charging ships to firing and processes consequences of laser strikes
-
-    if (this.state.allyShipStates.chargingShips.length > 0) {  // if there are any charging ships
-
-      // advance state of all ally charging ships to firing
-      for (const shipId of this.state.allyShipStates.chargingShips.values()) {
-        
-        // advance state to firing
-        this.advanceShipState(shipId);
-
-        // to process a laser fire, change to firing and make a callback to finish firing
-          // (props are just the whole ships, so the image will change automatically)
-          // check if there is a vowel or consonant in that lane
-          // if cons, it was blocked. Change laser state to idle
-          // if vowel, it hits. Tell the opposite ship that it got hit (in Game, play explosion and change Game.ships[targetShip].isAlive to false. In Ship, show incoming beam then display an empty div)
-
-          // change state back to idle
-          this.advanceShipState(shipId);
-      }
+  getLetterInLane(lane) {
+    /*
+    returns the string letter in a given int lane
+    */
+    // validate given lane
+    if (typeof lane !== 'number') {
+      console.log('Error: expected lane to be type number, but got', typeof lane);
+      return;
+    } else if (lane >= this.state.input.length || lane < 0) {
+      console.log('Error: out of bounds lane given to getLetterInLane');
     }
 
+    // get the letter
+    const letter = this.state.input[lane];
+    return letter;
+  }
 
-    // TODO: also do this for all charging enemy ships    
+  projectLaserTarget(lane) {
+    /*
+    takes an int lane and returns a string showing the first thing it collides with
+    */
+    // collides with consonant?
+    let target;
+    const letter = this.getLetterInLane(lane)
+    if (letter && ! isVowel(letter)) {
+      return 'consonant';
+    }
+
+    // collides with enemy's simultaneously fired laser?
+    const enemy = this.state.enemyShips[lane];
+    if (!target && enemy.state === 'firing') {
+      return 'enemyBeam';
+    }
+
+    // collides with enemy ship?
+    if (enemy.isAlive) {
+      return 'enemyShip';
+    }
+
+    // passes through the lane with no collision?
+    return 'empty';
+  }
+
+  fireAllChargingShips() {
+    /* 
+    advances states of all charging ships to firing and processes consequences of laser strikes
+    */
+    for (const lane of this.allLanes) {
+      const allyShip = this.state.allyShips[lane];
+      const enemyShip = this.state.enemyShips[lane];
+      
+      if (allyShip.getState() !== 'charging' && enemyShip.getState() !== 'charging') {
+        continue;  // nothing to do here
+      } else if (allyShip.getState() == 'charging') {
+        // only process ally
+
+        // maybe make fireLaser() function
+
+      } else if (enemyShip.getState() == 'charging') {
+        // only process enemy
+
+      } else {
+        // process both; laser collision
+      }
+
+      // advance state to firing
+      this.advanceShipState(shipId);
+
+      // use a callback for effect of laser fire at resolution?
+      // if the ship is still alive, add it to array of charging ships. If the ship is no longer alive, don't add it (this will remove it from pool of options for charging)
+      
+      // check laser's target. If cons or enemy firing laser, it was blocked
+      // else, it hits. Tell the opposite ship that it got hit (In Ship, show incoming beam then display an empty div)
+      // fire laser for 1 second (img will be changed automatically by the laser component. Try to set laser fire sound in <Laser/> too so they're both automatic)
+      // after firing, in destroyShip() callback (if provided, due to direct hit)...
+        // in Game (try first from Ship), play explosion sound
+        // in Game, change Game.ships[targetShip].isAlive to false to remove the ship from state (ship component will be removed from shiprow automatically, since shiprow param uses Game state)
+
+      // else after firing, in blocked callback
+        // Change laser state to idle
+      // change state back to idle
+      this.advanceShipState(shipId);
+    }   
   }
 
   tick() {
@@ -344,7 +435,7 @@ class Game extends React.Component {
       // advance the states from idle to charging
       this.advanceShipState(randomIdleAllyId);
       this.advanceShipState(randomIdleEnemyId);
-    }, ()=>{console.log(' > finished setState! Best to call advanceShipState here');});
+    }, ()=>{console.log(' > finished tick setState! Best to call advanceShipState here');});
   }
   
   componentDidMount() {
