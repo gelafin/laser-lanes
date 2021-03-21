@@ -16,8 +16,9 @@ function Ship(props) {
   const enemyImgUrl = 'https://live.staticflickr.com/65535/50724769872_da72a3fd7c_t.jpg';
   const allyImgUrl = 'https://live.staticflickr.com/65535/50724684336_aaa14d5649_t.jpg';
 
-  if (!props.isAlly) {  // enemy ships have lasers below them
+  if (!props.isAlly && props.isAlive) {  // is living enemy
     return (
+      // enemy ships have lasers below them
       <div className="ship">
         <img
           src={ props.isAlly ? allyImgUrl : enemyImgUrl }
@@ -25,7 +26,7 @@ function Ship(props) {
         <Laser isAlly = {false} laserState={props.state} />
       </div>
     );  
-  } else {
+  } else if (props.isAlive === true) {  // is living ally
     return (
       <div className="ship">
         <Laser isAlly = {true} laserState={props.state} />
@@ -34,6 +35,10 @@ function Ship(props) {
         />
       </div>
     );
+  } else {  // just render an empty div with the ship's size; ship has been destroyed
+    return (
+      <div className="ship"></div>
+    )
   }
 }
 
@@ -75,7 +80,7 @@ function Laser(props) {
 
 function ShipRow(props) {
   const shipRow = Object.values(props.ships).map((ship) => 
-    <Ship isAlly={ship.isAlly()} state={ship.getState()} key={ship.getId()} />
+    <Ship isAlly={ship.isAlly()} isAlive={ship.isAlive()} state={ship.getState()} key={ship.getId()} />
   );
 
   return (
@@ -456,7 +461,7 @@ class Game extends React.Component {
     // prepare convenience variables
     const shipId = shipObject.getId();
     const lane = shipObject.getLane();
-    const isAlly = shipObject.isAlly;
+    const isAlly = shipObject.isAlly();
 
     // determine laser target
     const target = this.projectLaserTarget(lane, isAlly);
