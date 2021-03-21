@@ -75,7 +75,7 @@ function Laser(props) {
 
 function ShipRow(props) {
   const shipRow = Object.values(props.ships).map((ship) => 
-    <Ship isAlly={ship.isAlly} state={ship.getState()} key={ship.getId()} />
+    <Ship isAlly={ship.isAlly()} state={ship.getState()} key={ship.getId()} />
   );
 
   return (
@@ -137,7 +137,7 @@ class ShipObject {
     this.alive = true;
     this.state = 'idle';
     this.lane = laneNumber;
-    this.isAlly = isAlly;
+    this.ally = isAlly;
 
     const idPrefix = isAlly ? 'ally' : 'enemy';
     this.id = idPrefix + laneNumber.toString();
@@ -155,6 +155,10 @@ class ShipObject {
     return this.lane;
   }
 
+  isAlly() {
+    return this.ally;
+  }
+
   isAlive() {
     return this.alive;
   }
@@ -165,7 +169,7 @@ class ShipObject {
 
   print() {
     console.log('\tid:', this.getId());
-    console.log('\tisAlly:', this.isAlly);
+    console.log('\tisAlly:', this.isAlly());
     console.log('\tlane:', this.getLane());
     console.log('\tstate:', this.getState());
     console.log('\talive:', this.isAlive());
@@ -219,12 +223,11 @@ class Game extends React.Component {
     super(props);
 
     const maxColumns = 7;
-    const maxRows = 5;
 
     this.maxColumns = maxColumns;
-    this.maxRows = maxRows;
     this.allLanes = Array.from(new Array(maxColumns).keys());
     this.laserFireMs = 3000;  // lasers fire for 3 seconds. Affects sfx and delay to remove beam img
+    this.tickMs = 10000;  // Ticks every 10 seconds. Affects how long player has to type a new word
 
     // track ship objects, keyed by ship ID
     let initialAllyShips = {};
@@ -402,9 +405,41 @@ class Game extends React.Component {
     ship.destroy();
     
     // (automatic through prop) update <Ship/> with empty div with same class for same size
+    
+    /*
+    ======================== 
+    remove from pool of idle or charging lasers 
+    ========================
+    */
+    // get allegiance-specific array
+    let laneStateArray;
+    if (ship.isAlly()) {
+      laneStateArray = 'allyShipStates';
+    } else {
+      laneStateArray = 'enemyShipStates';
+    }
 
-    // remove from pool of idle lasers
+    // get state-specific array
+    let oldStateGroup;
+    if (ship.getState() === 'idle') {
+      oldStateGroup = 'idleShips';
+    } else if (ship.getState() === 'charging') {
+      oldStateGroup = 'chargingShips';
+    } else {
+      console.log('ERROR: shouldn\'t be destroying a firing ship');
+    }
 
+    // now we know which lane state array to remove from, so get the index of this ship
+    const removalIndex = this.state[laneStateArray][oldStateGroup].indexOf(ship.getId());
+
+    // make copies of lane state arrays
+    let oldStateGroupArray = this.state[laneStateArray][oldStateGroup];
+
+    // change the copy array
+    oldStateGroupArray.splice(removalIndex, 1);
+
+    // set the Game state by replacing lane state array with the updated copy
+    this.setState({ [[laneStateArray][oldStateGroup]]: oldStateGroupArray });
   }
 
   laneToId(lane, isAlly) {
@@ -501,9 +536,6 @@ class Game extends React.Component {
 
   tick() {
     console.log('----- ticking -----');
-    // test
-    this.sfx.explosion.play().catch(()=>{console.log('*****ERROR: audio play() promise rejected. Click into the text box--or else this is localhost');});
-
     this.fireAllChargingShips();
 
     this.setState((state) => {
