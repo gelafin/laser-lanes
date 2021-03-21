@@ -155,12 +155,16 @@ class ShipObject {
     return this.lane;
   }
 
+  isAlive() {
+    return this.alive;
+  }
+
   print() {
     console.log('\tid:', this.getId());
     console.log('\tisAlly:', this.isAlly);
     console.log('\tlane:', this.getLane());
     console.log('\tstate:', this.getState());
-    console.log('\talive:', this.alive);
+    console.log('\talive:', this.isAlive());
   }
 
   advanceState() {
@@ -259,6 +263,7 @@ class Game extends React.Component {
     this.projectLaserTarget = this.projectLaserTarget.bind(this);
     this.laneToId = this.laneToId.bind(this);
     this.destroyShip = this.destroyShip.bind(this);
+    this.getOppositeShip = this.getOppositeShip.bind(this);
   }
   
   advanceShipState(shipId) {
@@ -345,12 +350,19 @@ class Game extends React.Component {
     return letter;
   }
 
+  getOppositeShip(lane, isAlly) {
+    /*
+    takes an int lane and bool isAlly; returns the string shipId of the other ship in its lane
+    */
+    const shipId = this.laneToId(lane, !isAlly);
+    return shipId;
+  }
+
   projectLaserTarget(lane, isAlly) {
     /*
     takes an int lane and bool isAlly; returns a string showing the first thing it collides with
     */
     // collides with consonant?
-    let target;
     const letter = this.getLetterInLane(lane)
     if (letter && ! isVowel(letter)) {
       return 'consonant';
@@ -358,14 +370,14 @@ class Game extends React.Component {
 
     // collides with other's simultaneously fired laser?
     const oppositeGroup = isAlly ? 'enemyShips' : 'allyShips';
-    const shipId = this.laneToId(lane, !isAlly);
+    const shipId = this.getOppositeShip(lane, isAlly);
     const oppositeShip = this.state[oppositeGroup][shipId];
-    if (!target && oppositeShip.state === 'firing') {
+    if (oppositeShip.state === 'firing') {
       return 'otherBeam';
     }
 
     // collides with enemy ship?
-    if (oppositeShip.isAlive) {
+    if (oppositeShip.isAlive()) {
       return 'otherShip';
     }
 
@@ -377,7 +389,7 @@ class Game extends React.Component {
     /*
     takes a string shipId and destroys that ship
     */
-    console.log('destroying ', shipId, '...');
+    console.log('\tdestroying ', shipId, '...');
     // set .isAlive so ship remains as a tombstone
     
     // (automatic through prop) update <Ship/> with empty div with same class for same size
@@ -389,6 +401,35 @@ class Game extends React.Component {
   laneToId(lane, isAlly) {
     /**/
     return isAlly ? 'ally' + lane : 'enemy' + lane;
+  }
+
+  fireLaser(shipObject) {
+    /*
+    takes a *firing* ship object and fires its laser, hitting whatever is first in its lane
+    */
+    console.log('***firing', shipObject.getId());
+
+    // determine laser target
+    const lane = shipObject.getLane();
+    const isAlly = shipObject.isAlly;
+    const target = this.projectLaserTarget(lane, isAlly);
+
+    // process consequences of laser hitting the target
+    if (target === 'consonant') {
+      // blocked by consonant
+      console.log('\tlaser blocked by consonant');
+    } else if (target === 'otherBeam') {
+      // blocked by other beam
+      console.log('\tlaser blocked by other beam');
+    } else if (target === 'empty') {
+      // passes through an empty lane
+      console.log('\tlaser passes through empty lane');
+    } else if (target === 'otherShip') {
+      // destroy other ship
+      console.log('\tlaser destroys', this.getOppositeShip(lane, isAlly));
+      this.destroyShip(this.getOppositeShip(lane, isAlly));
+    }
+
   }
 
   fireAllChargingShips() {
@@ -405,8 +446,12 @@ class Game extends React.Component {
         continue;  // nothing to do here
       } else if (allyShip.getState() === 'charging') {
         // only process ally
-        console.log('***firing ally laser in lane ', lane);
-        // TODO: maybe make fireLaser() function
+
+        // advance state to firing
+        this.advanceShipState(allyId);
+        this.fireLaser(allyShip);
+        /*
+
         this.advanceShipState(allyShip.getId());  // advance state to firing
         const target = this.projectLaserTarget(lane, true);
         if (target === 'consonant') {
@@ -423,20 +468,22 @@ class Game extends React.Component {
           console.log('\tally laser hits enemy');
           this.destroyShip(enemyShip.getId);
         }
+
+        */
       } else if (enemyShip.getState() === 'charging') {
         // only process enemy
-        console.log('***firing enemy laser in lane ', lane);
-        this.advanceShipState(enemyShip.getId());  // advance state to firing
-        const target = this.projectLaserTarget(lane, false);
 
-        console.log('\tenemy laser target is', target);
+        // advance state to firing
+        this.advanceShipState(enemyId);
+        this.fireLaser(enemyShip);
 
       } else {
         console.log('***firing ally and enemy lasers in lane ', lane);
         // process both; laser collision
-        this.advanceShipState(allyShip.getId());  // advance state to firing
-        this.advanceShipState(enemyShip.getId());  // advance state to firing
-
+        this.advanceShipState(allyId);  // advance state to firing
+        this.advanceShipState(enemyId);  // advance state to firing
+        this.fireLaser(allyShip);
+        this.fireLaser(enemyShip);
       }
 
       // use a callback for effect of laser fire at resolution?
