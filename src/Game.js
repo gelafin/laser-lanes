@@ -179,27 +179,24 @@ class ShipObject {
   }
 }
 
-function getLaneFromShipId(shipId, allegiance) {
+function getLaneFromShipId(shipId, isAlly) {
   /*
-  takes a shipId string and optional string allegiance; returns the lane number
+  takes a shipId string and optional bool isAlly for efficiency; returns the int lane number
   */
-  let idPrefix;
+  // if allegiance isn't known; get it by parsing the ID
+  if (typeof isAlly !== 'boolean') {
+    isAlly = shipId.includes('ally') ? true : shipId.includes('enemy') ? false : 'ERROR';
 
-  // if allegiance was provided, use it; it's more efficient than parsing
-  if (typeof allegiance !== 'undefined') {
-    idPrefix = allegiance;
-  } else {
-    // allegiance isn't known; get it by parsing the ID
-    idPrefix = shipId.includes('ally') ? 'ally': shipId.includes('enemy') ? 'enemy' : 'ERROR';
-
-    if (allegiance === 'ERROR') {
+    if (isAlly === 'ERROR') {
       console.log('Error parsing ship ID:', shipId);
       return
     }
-  }
+  } 
 
+  // get allegiance prefix and split the lane number off from the ID
+  const idPrefix = isAlly ? 'ally' : 'enemy';
   const lane = shipId.split(idPrefix)[1];
-  return lane;
+  return parseInt(lane);
 }
 
 function printObject(object) {
@@ -218,12 +215,12 @@ class Game extends React.Component {
 
     this.maxColumns = maxColumns;
     this.maxRows = maxRows;
-    const allLanes = Array.from(new Array(maxColumns).keys());
+    this.allLanes = Array.from(new Array(maxColumns).keys());
 
     // track ship objects, keyed by ship ID
     let initialAllyShips = {};
     let initialEnemyShips = {};
-    for (const lane of allLanes.values()) {
+    for (const lane of this.allLanes.values()) {
       // add an ally ship
       let newAlly = new ShipObject(true, lane);  // TODO: can use const?
       initialAllyShips[newAlly.getId()] = newAlly;
@@ -260,6 +257,8 @@ class Game extends React.Component {
     this.fireAllChargingShips = this.fireAllChargingShips.bind(this);
     this.getLetterInLane = this.getLetterInLane.bind(this);
     this.projectLaserTarget = this.projectLaserTarget.bind(this);
+    this.laneToId = this.laneToId.bind(this);
+    this.destroyShip = this.destroyShip.bind(this);
   }
   
   advanceShipState(shipId) {
@@ -337,7 +336,7 @@ class Game extends React.Component {
     if (typeof lane !== 'number') {
       console.log('Error: expected lane to be type number, but got', typeof lane);
       return;
-    } else if (lane >= this.state.input.length || lane < 0) {
+    } else if (lane >= this.allLanes.length || lane < 0) {
       console.log('Error: out of bounds lane given to getLetterInLane');
     }
 
@@ -346,9 +345,9 @@ class Game extends React.Component {
     return letter;
   }
 
-  projectLaserTarget(lane) {
+  projectLaserTarget(lane, isAlly) {
     /*
-    takes an int lane and returns a string showing the first thing it collides with
+    takes an int lane and bool isAlly; returns a string showing the first thing it collides with
     */
     // collides with consonant?
     let target;
@@ -357,19 +356,39 @@ class Game extends React.Component {
       return 'consonant';
     }
 
-    // collides with enemy's simultaneously fired laser?
-    const enemy = this.state.enemyShips[lane];
-    if (!target && enemy.state === 'firing') {
-      return 'enemyBeam';
+    // collides with other's simultaneously fired laser?
+    const oppositeGroup = isAlly ? 'enemyShips' : 'allyShips';
+    const shipId = this.laneToId(lane, !isAlly);
+    const oppositeShip = this.state[oppositeGroup][shipId];
+    if (!target && oppositeShip.state === 'firing') {
+      return 'otherBeam';
     }
 
     // collides with enemy ship?
-    if (enemy.isAlive) {
-      return 'enemyShip';
+    if (oppositeShip.isAlive) {
+      return 'otherShip';
     }
 
     // passes through the lane with no collision?
     return 'empty';
+  }
+
+  destroyShip(shipId) {
+    /*
+    takes a string shipId and destroys that ship
+    */
+    console.log('destroying ', shipId, '...');
+    // set .isAlive so ship remains as a tombstone
+    
+    // (automatic through prop) update <Ship/> with empty div with same class for same size
+
+    // remove from pool of idle lasers
+
+  }
+
+  laneToId(lane, isAlly) {
+    /**/
+    return isAlly ? 'ally' + lane : 'enemy' + lane;
   }
 
   fireAllChargingShips() {
@@ -377,31 +396,53 @@ class Game extends React.Component {
     advances states of all charging ships to firing and processes consequences of laser strikes
     */
     for (const lane of this.allLanes) {
-      const allyShip = this.state.allyShips[lane];
-      const enemyShip = this.state.enemyShips[lane];
+      const allyId = this.laneToId(lane, true);
+      const enemyId = this.laneToId(lane, false);
+      const allyShip = this.state.allyShips[allyId];
+      const enemyShip = this.state.enemyShips[enemyId];
       
       if (allyShip.getState() !== 'charging' && enemyShip.getState() !== 'charging') {
         continue;  // nothing to do here
-      } else if (allyShip.getState() == 'charging') {
+      } else if (allyShip.getState() === 'charging') {
         // only process ally
-
-        // maybe make fireLaser() function
-
-      } else if (enemyShip.getState() == 'charging') {
+        console.log('***firing ally laser in lane ', lane);
+        // TODO: maybe make fireLaser() function
+        this.advanceShipState(allyShip.getId());  // advance state to firing
+        const target = this.projectLaserTarget(lane, true);
+        if (target === 'consonant') {
+          // blocked by consonant
+          console.log('\tally laser blocked by consonant');
+        } else if (target === 'otherBeam') {
+          // blocked by other beam
+          console.log('\tally laser blocked by other beam');
+        } else if (target === 'empty') {
+          // passes through an empty lane
+          console.log('\tally laser passes through empty lane');
+        } else if (target === 'otherShip') {
+          // destroy other ship
+          console.log('\tally laser hits enemy');
+          this.destroyShip(enemyShip.getId);
+        }
+      } else if (enemyShip.getState() === 'charging') {
         // only process enemy
+        console.log('***firing enemy laser in lane ', lane);
+        this.advanceShipState(enemyShip.getId());  // advance state to firing
+        const target = this.projectLaserTarget(lane, false);
+
+        console.log('\tenemy laser target is', target);
 
       } else {
+        console.log('***firing ally and enemy lasers in lane ', lane);
         // process both; laser collision
-      }
+        this.advanceShipState(allyShip.getId());  // advance state to firing
+        this.advanceShipState(enemyShip.getId());  // advance state to firing
 
-      // advance state to firing
-      this.advanceShipState(shipId);
+      }
 
       // use a callback for effect of laser fire at resolution?
       // if the ship is still alive, add it to array of charging ships. If the ship is no longer alive, don't add it (this will remove it from pool of options for charging)
       
-      // check laser's target. If cons or enemy firing laser, it was blocked
-      // else, it hits. Tell the opposite ship that it got hit (In Ship, show incoming beam then display an empty div)
+      // if it hits, tell the opposite ship that it got hit (In Ship, show incoming beam then display an empty div)
       // fire laser for 1 second (img will be changed automatically by the laser component. Try to set laser fire sound in <Laser/> too so they're both automatic)
       // after firing, in destroyShip() callback (if provided, due to direct hit)...
         // in Game (try first from Ship), play explosion sound
@@ -410,7 +451,6 @@ class Game extends React.Component {
       // else after firing, in blocked callback
         // Change laser state to idle
       // change state back to idle
-      this.advanceShipState(shipId);
     }   
   }
 
