@@ -1,8 +1,11 @@
 finish fireAllChargingShips
+  - remove laser img...
+    - 
+
   - when ship dies...
     - set .isAlive so ship remains as a tombstone
     - update <Ship/> with empty div with same class for same size
-    - remove from pool of idle lasers
+    - remove from pool of idle or charging lasers
 
 add incoming laser images to Ship
 
