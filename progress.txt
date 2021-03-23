@@ -1,11 +1,10 @@
-finish fireAllChargingShips
-  - remove laser img...
-    - 
+! FIX
+  - sometimes, enemy (only enemy) charging does not advance to firing until the NEXT tick
+  - independently, sometimes, dead enemy (only enemy) is chosen to charge
+    - confirmed it's not always removed from state array
 
-  - when ship dies...
-    - set .isAlive so ship remains as a tombstone
-    - update <Ship/> with empty div with same class for same size
-    - remove from pool of idle or charging lasers
+add check for end of game
+  - if all allies (or enemies, can check either) have a dead opposite ship, count living allies vs living enemies and decide result
 
 add incoming laser images to Ship
 

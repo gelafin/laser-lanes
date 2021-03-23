@@ -182,13 +182,10 @@ class ShipObject {
 
   advanceState() {
     if (this.state === 'idle') {
-      console.log('in ShipObject::advanceState(): is idle, will charge');
       this.state = 'charging';
     } else if (this.state === 'charging') {
-      console.log('in ShipObject::advanceState(): is charging, will fire');
       this.state = 'firing';
     } else {
-      console.log('in ShipObject::advanceState(): is firing, will idle');
       this.state = 'idle';
     }
 
@@ -277,6 +274,7 @@ class Game extends React.Component {
     this.laneToId = this.laneToId.bind(this);
     this.destroyShip = this.destroyShip.bind(this);
     this.getOppositeShip = this.getOppositeShip.bind(this);
+    this.fireLaser = this.fireLaser.bind(this);
   }
   
   advanceShipState(shipId) {
@@ -409,8 +407,6 @@ class Game extends React.Component {
     // set .isAlive to false so ship remains as a tombstone
     ship.destroy();
     
-    // (automatic through prop) update <Ship/> with empty div with same class for same size
-    
     /*
     ======================== 
     remove from pool of idle or charging lasers 
@@ -502,15 +498,15 @@ class Game extends React.Component {
       const enemyShip = this.state.enemyShips[enemyId];
       
       if (allyShip.getState() !== 'charging' && enemyShip.getState() !== 'charging') {
-        continue;  // nothing to do here
-      } else if (allyShip.getState() === 'charging') {
-        // only process ally
+        continue;  // nothing to do here; neither ship is charging!
+      } else if (allyShip.getState() === 'charging' && enemyShip.getState() !== 'charging') {
+        // only ally is charging
 
         // advance state to firing
         this.advanceShipState(allyId);
         this.fireLaser(allyShip);
-      } else if (enemyShip.getState() === 'charging') {
-        // only process enemy
+      } else if (enemyShip.getState() === 'charging' && allyShip.getState() !== 'charging') {
+        // only enemy is charging
 
         // advance state to firing
         this.advanceShipState(enemyId);
@@ -563,7 +559,7 @@ class Game extends React.Component {
   componentDidMount() {
     this.timerID = setInterval(
       () => this.tick(),
-      10000
+      this.tickMs
     );
 
     // load sfx (should only load these once, then play them as needed)
