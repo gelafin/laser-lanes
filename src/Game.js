@@ -228,8 +228,8 @@ class Game extends React.Component {
 
     this.maxColumns = maxColumns;
     this.allLanes = Array.from(new Array(maxColumns).keys());
-    this.laserFireMs = 3000;  // lasers fire for 3 seconds. Affects sfx and delay to remove beam img
     this.tickMs = 10000;  // Ticks every 10 seconds. Affects how long player has to type a new word
+    this.laserFireMs = Math.floor(this.tickMs / this.tickMs);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
 
     // track ship objects, keyed by ship ID
     let initialAllyShips = {};
@@ -275,6 +275,7 @@ class Game extends React.Component {
     this.destroyShip = this.destroyShip.bind(this);
     this.getOppositeShip = this.getOppositeShip.bind(this);
     this.fireLaser = this.fireLaser.bind(this);
+    this.haltLaser = this.haltLaser.bind(this);
   }
   
   advanceShipState(shipId) {
@@ -397,20 +398,10 @@ class Game extends React.Component {
     return 'empty';
   }
 
-  destroyShip(ship) {
+  haltLaser(ship) {
     /*
-    takes a reference to a ship object and destroys that ship
-    */
-    console.log('\tdestroying ', ship.getId(), '...');
-    this.sfx.explosion.play().catch(()=>{console.log('\tERROR: explosion audio play() promise rejected. Click into the text box--or else this is localhost');});
-
-    // set .isAlive to false so ship remains as a tombstone
-    ship.destroy();
-    
-    /*
-    ======================== 
-    remove from pool of idle or charging lasers 
-    ========================
+    takes a reference to a ship object and disables its laser 
+      by removing it from the pool of idle or charging lasers
     */
     // get allegiance-specific array
     let laneStateArray;
@@ -427,7 +418,7 @@ class Game extends React.Component {
     } else if (ship.getState() === 'charging') {
       oldStateGroup = 'chargingShips';
     } else {
-      console.log('ERROR: shouldn\'t be destroying a firing ship');
+      oldStateGroup = 'firingShips';
     }
 
     // now we know which lane state array to remove from, so get the index of this ship
@@ -443,14 +434,29 @@ class Game extends React.Component {
     this.setState({ [[laneStateArray][oldStateGroup]]: oldStateGroupArray });
   }
 
+  destroyShip(ship) {
+    /*
+    takes a reference to a ship object and destroys that ship
+    */
+    console.log('\tdestroying ', ship.getId(), '...');
+    this.sfx.explosion.play().catch(()=>{console.log('\tERROR: explosion audio play() promise rejected. Click into the text box--or else this is localhost');});
+
+    // set .isAlive to false so ship remains as a tombstone
+    ship.destroy();
+
+    // disable its laser
+    this.haltLaser(ship);
+  }
+
   laneToId(lane, isAlly) {
     /**/
     return isAlly ? 'ally' + lane : 'enemy' + lane;
   }
 
-  fireLaser(shipObject, callback) {
+  fireLaser(shipObject) {
     /*
-    takes a *firing* ship object and callback function; fires the laser, hitting whatever is first in its lane, then calls the callback
+    takes a *firing* ship object and fires the laser, hitting whatever is first in its lane
+    if a ship is hit, that ship is destoyed, and the victorious ship's laser is retired (disabled)
     */
     console.log('***firing', shipObject.getId());
 
@@ -479,6 +485,7 @@ class Game extends React.Component {
       console.log('\tlaser destroys', oppositeShip.getId());
 
       this.destroyShip(oppositeShip);
+      this.haltLaser(shipObject);
     }
 
     // done firing the laser; delay resetting state to idle for a few seconds to let player see it was fired
@@ -520,18 +527,6 @@ class Game extends React.Component {
         this.fireLaser(allyShip);
         this.fireLaser(enemyShip);
       }
-
-      // if the ship is still alive, add it to array of charging ships. If the ship is no longer alive, don't add it (this will remove it from pool of options for charging)
-      
-      // if it hits, tell the opposite ship that it got hit (In Ship, show incoming beam then display an empty div)
-      // fire laser for 1 second (img will be changed automatically by the laser component. Try to set laser fire sound in <Laser/> too so they're both automatic)
-      // after firing, in destroyShip() callback (if provided, due to direct hit)...
-        // in Game (try first from Ship), play explosion sound
-        // in Game, change Game.ships[targetShip].isAlive to false to remove the ship from state (ship component will be removed from shiprow automatically, since shiprow param uses Game state)
-
-      // else after firing, in blocked callback
-        // Change laser state to idle
-      // change state back to idle
     }   
   }
 
