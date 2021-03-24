@@ -559,18 +559,28 @@ class Game extends React.Component {
     */
     // if all allies (or enemies, can check either) have a dead opposite ship, 
     // count living allies vs living enemies and decide result
-    let gameCondition = null; // default return
     let allyCount = 0;
     let enemyCount = 0;
+    let livingPairs = 0;
     for (const lane of this.allLanes) {
       const allyId = this.laneToId(lane, true);
       const enemyId = this.laneToId(lane, false);
       const allyShip = this.state.allyShips[allyId];
       const enemyShip = this.state.enemyShips[enemyId];
 
-      // if any lane still has two living ships, game is not over yet
+      // check if there are still pairs of opponent ships in a lane
       if (allyShip.isAlive() && enemyShip.isAlive()) {
-        return null;
+        // if any lane still has two living ships not in stalemate, game is not over yet
+        if (allyShip.getState() !== enemyShip.getState()) {
+          return null;
+        }
+
+        // if not, there's still the chance that the currently charging ships are in the same lane
+        // in a stalemate, up to 2 lanes can have living pairs, so >2 means the game isn't over
+        livingPairs++;
+        if (livingPairs > 2) {
+          return null;
+        }
       }
 
       // keep a count of living allies
@@ -584,7 +594,7 @@ class Game extends React.Component {
       }
     }
 
-    // no lanes have 2 living ships, so the game is over. Count ships to decide winner
+    // the game is over. Count ships to decide winner
     if (allyCount > enemyCount) {
       return 'win';
     } else if (allyCount < enemyCount) {
