@@ -229,8 +229,8 @@ class Game extends React.Component {
     this.maxColumns = maxColumns;
     this.allLanes = Array.from(new Array(maxColumns).keys());
     this.tickMs = 10000;  // Ticks every 10 seconds. Affects how long player has to type a new word
-    this.laserFireMs = Math.floor(this.tickMs / this.tickMs);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
-
+    this.laserFireMs = Math.floor(this.tickMs / this.tickMs * 1000);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
+    alert(this.laserFireMs);
     // track ship objects, keyed by ship ID
     let initialAllyShips = {};
     let initialEnemyShips = {};
