@@ -1,7 +1,7 @@
 add check for end of game
   - in componentDidMount, remove tick() interval
-
-deactivate winning ships
+  - stalemate: up to 2 ships can have living opponents IF their states are the same. In that case, move to counting survivors
+    - fixes undefined random idle ally (when there are none) cased by firing state delay
 
 properly laser images
   - size lasers (may need to update url for enemy lasers, since Flikr changed it for ally ones)
