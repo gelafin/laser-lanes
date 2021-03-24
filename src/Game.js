@@ -236,38 +236,32 @@ class Game extends React.Component {
     this.laserFireMs = Math.floor(this.tickMs / this.tickMs * 1000);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
     this.laserFireMs = 1000;  // test!
     // track ship objects, keyed by ship ID
-    let initialAllyShips = {};
-    let initialEnemyShips = {};
+    this.initialAllyShips = {};
+    this.initialEnemyShips = {};
     for (const lane of this.allLanes.values()) {
       // add an ally ship
       let newAlly = new ShipObject(true, lane);  // TODO: can use const?
-      initialAllyShips[newAlly.getId()] = newAlly;
+      this.initialAllyShips[newAlly.getId()] = newAlly;
 
       // add an enemy ship
       let newEnemy = new ShipObject(false, lane);  // TODO: can use const?
-      initialEnemyShips[newEnemy.getId()] = newEnemy;
+      this.initialEnemyShips[newEnemy.getId()] = newEnemy;
     }
 
     // track ID number of each ship in a given state, for convenience and efficiency elsewhere. Updated by advanceShipState
-    const initialAllyShipStates = {
+    this.initialAllyShipStates = {
         firingShips: [],
         chargingShips: [],
-        idleShips: Array.from(Object.keys(initialAllyShips))  // keyed by ID
+        idleShips: Array.from(Object.keys(this.initialAllyShips))  // keyed by ID
     };
 
-    const initialEnemyShipStates = {
+    this.initialEnemyShipStates = {
         firingShips: [],
         chargingShips: [],
-        idleShips: Array.from(Object.keys(initialEnemyShips))  // keyed by ID
+        idleShips: Array.from(Object.keys(this.initialEnemyShips))  // keyed by ID
     };
-    
-    this.state = {
-      input: 'begin',
-      allyShips: initialAllyShips,
-      enemyShips: initialEnemyShips,
-      allyShipStates: initialAllyShipStates,
-      enemyShipStates: initialEnemyShipStates
-    };
+
+    this.initializeState();
 
     this.handleInputChange = this.handleInputChange.bind(this);
     this.tick = this.tick.bind(this);
@@ -283,6 +277,19 @@ class Game extends React.Component {
     this.checkEndGame = this.checkEndGame.bind(this);
   }
   
+  initializeState() {
+    /*
+    (re)initializes state variables
+    */
+    this.state = {
+      input: 'begin',
+      allyShips: this.initialAllyShips,
+      enemyShips: this.initialEnemyShips,
+      allyShipStates: this.initialAllyShipStates,
+      enemyShipStates: this.initialEnemyShipStates
+    };
+  }
+
   advanceShipState(shipId) {
     // param: shipId: id of the ship object to be updated
     // calls the ship object's advanceState and updates both the Game's ship object and lane state lists
