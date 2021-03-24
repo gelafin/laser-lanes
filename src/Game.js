@@ -228,9 +228,9 @@ class Game extends React.Component {
 
     this.maxColumns = maxColumns;
     this.allLanes = Array.from(new Array(maxColumns).keys());
-    this.tickMs = 10000;  // Ticks every 10 seconds. Affects how long player has to type a new word
+    this.tickMs = 8000;  // Ticks every 10 seconds. Affects how long player has to type a new word
     this.laserFireMs = Math.floor(this.tickMs / this.tickMs * 1000);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
-    alert(this.laserFireMs);
+    
     // track ship objects, keyed by ship ID
     let initialAllyShips = {};
     let initialEnemyShips = {};
@@ -258,7 +258,7 @@ class Game extends React.Component {
     };
     
     this.state = {
-      input: 'testt',
+      input: 'begin',
       allyShips: initialAllyShips,
       enemyShips: initialEnemyShips,
       allyShipStates: initialAllyShipStates,
@@ -276,6 +276,7 @@ class Game extends React.Component {
     this.getOppositeShip = this.getOppositeShip.bind(this);
     this.fireLaser = this.fireLaser.bind(this);
     this.haltLaser = this.haltLaser.bind(this);
+    this.checkEndGame = this.checkEndGame.bind(this);
   }
   
   advanceShipState(shipId) {
@@ -533,6 +534,47 @@ class Game extends React.Component {
     }   
   }
 
+  checkEndGame() {
+    /*
+    checks for win or loss; returns 'win' or 'lose' if game is over or else null
+    */
+    // if all allies (or enemies, can check either) have a dead opposite ship, 
+    // count living allies vs living enemies and decide result
+    let gameCondition = null; // default return
+    let allyCount = 0;
+    let enemyCount = 0;
+    for (const lane of this.allLanes) {
+      const allyId = this.laneToId(lane, true);
+      const enemyId = this.laneToId(lane, false);
+      const allyShip = this.state.allyShips[allyId];
+      const enemyShip = this.state.enemyShips[enemyId];
+
+      // if any lane still has two living ships, game is not over yet
+      if (allyShip.isAlive() && enemyShip.isAlive()) {
+        return null;
+      }
+
+      // keep a count of living allies
+      if (allyShip.isAlive()) {
+        allyCount++;
+      }
+
+      // keep a count of living enemies
+      if (enemyShip.isAlive()) {
+        enemyCount++;
+      }
+    }
+
+    // no lanes have 2 living ships, so the game is over. Count ships to decide winner
+    if (allyCount > enemyCount) {
+      return 'win';
+    } else if (allyCount < enemyCount) {
+      return 'lose';
+    } else {
+      return 'tie';
+    }
+  }
+
   tick() {
     console.log('----- ticking -----');
     this.fireAllChargingShips();
@@ -554,10 +596,25 @@ class Game extends React.Component {
 
       // play charging sound effect
       this.sfx.chargingLaser.play().catch(()=>{console.log('\tERROR: chargingLaser audio play() promise rejected. Click into the text box--or else this is localhost');});
+
+      // check for win/lose
+      const gameCondition = this.checkEndGame();
+      if (gameCondition === 'win') {
+        alert('win!');  // TODO: here and in lose, make play again button to reinitialize
+      } else if (gameCondition === 'lose') {
+        alert('it\'s ok\, try again!');
+      } else if (gameCondition === 'tie') {
+        alert('tie, pretty good');
+      }
+
     }, ()=>{console.log(' > finished tick setState! Best to call advanceShipState here');});
   }
   
   componentDidMount() {
+    // popup with start button (TODO: make it a real popup)
+    alert('Laser Lanes\n\n' + 'Lasers fire automatically every ' + Math.floor(this.tickMs / 1000) + ' seconds. Lasers are blocked by consonants but pass through vowels, so please type words that will win');
+
+    // begin main game loop
     this.timerID = setInterval(
       () => this.tick(),
       this.tickMs

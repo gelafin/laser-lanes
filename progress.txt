@@ -1,6 +1,7 @@
 add check for end of game
-  - if all allies (or enemies, can check either) have a dead opposite ship, count living allies vs living enemies and decide result
-  - add simple alert for victory
+  - in componentDidMount, remove tick() interval
+
+deactivate winning ships
 
 properly laser images
   - size lasers (may need to update url for enemy lasers, since Flikr changed it for ally ones)
@@ -8,7 +9,7 @@ properly laser images
   - pls shrink input box; it only needs to fit 20 chars (use em plus max-width: %)
 
 start screen
-  - popup with an explanation of the game and a start button
+  - make an actual popup and blur bg, not just alert
   - start button: removes the popup and starts the first tick (will need to move setup of setInterval(tick...) into button c/b, as well as bg music)
 
 add input dictionary check
