@@ -488,6 +488,9 @@ class Game extends React.Component {
       this.haltLaser(shipObject);
     }
 
+    // play the sound effect
+    this.sfx.firingLaser.play().catch(()=>{console.log('\tERROR: firingLaser audio play() promise rejected. Click into the text box--or else this is localhost');});
+
     // done firing the laser; delay resetting state to idle for a few seconds to let player see it was fired
     setTimeout(() => {
       this.advanceShipState(shipId);
@@ -548,6 +551,9 @@ class Game extends React.Component {
       // advance the states from idle to charging
       this.advanceShipState(randomIdleAllyId);
       this.advanceShipState(randomIdleEnemyId);
+
+      // play charging sound effect
+      this.sfx.chargingLaser.play().catch(()=>{console.log('\tERROR: chargingLaser audio play() promise rejected. Click into the text box--or else this is localhost');});
     }, ()=>{console.log(' > finished tick setState! Best to call advanceShipState here');});
   }
   
