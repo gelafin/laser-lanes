@@ -528,8 +528,6 @@ class Game extends React.Component {
       // destroy other ship
       const oppositeShip = this.getOppositeShip(lane, isAlly);
 
-      this.destroyShip(oppositeShip);
-      this.haltLaser(shipObject);
       disabledLaser = true;
     }
 
@@ -541,8 +539,9 @@ class Game extends React.Component {
       if (!disabledLaser) {
         this.advanceShipState(shipId);
       } else {
-        shipObject.retire();
-
+        this.destroyShip(oppositeShip);
+        this.haltLaser(shipObject);
+  
         // update the object in props for the children
         // get allegiance-specific variables
         let shipObjects;
@@ -557,7 +556,8 @@ class Game extends React.Component {
         ======================== 
         */
         let newShipObjects = {...this.state[shipObjects]};
-        newShipObjects[shipId].advanceState();
+        // newShipObjects[shipId].advanceState();
+        newShipObjects[shipId].retire();
         this.setState({ [shipObjects]: newShipObjects });
       }
     }, this.laserFireMs);
