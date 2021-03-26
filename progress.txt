@@ -1,6 +1,4 @@
-play again button
-  - reinitialize states
-  - in componentDidMount, remove tick() interval
+timeout isn't applying to mutually destroyed ships
 
 properly laser images
   - size lasers (may need to update url for enemy lasers, since Flikr changed it for ally ones)

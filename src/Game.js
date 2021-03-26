@@ -35,7 +35,8 @@ function Ship(props) {
         />
       </div>
     );
-  } else {  // just render an empty div with the ship's size; ship has been destroyed
+  } else {  // ship has been destroyed
+    // render an empty div with the ship's size
     return (
       <div className="ship"></div>
     )
@@ -234,7 +235,30 @@ class Game extends React.Component {
     this.allLanes = Array.from(new Array(maxColumns).keys());
     this.tickMs = 8000;  // Ticks every 10 seconds. Affects how long player has to type a new word
     this.laserFireMs = Math.floor(this.tickMs / this.tickMs * 1000);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
-    this.laserFireMs = 1000;  // test!
+    this.isRestarting = false;
+
+    this.state = this.getInitialState();
+
+    this.handleInputChange = this.handleInputChange.bind(this);
+    this.tick = this.tick.bind(this);
+    this.advanceShipState = this.advanceShipState.bind(this);
+    this.fireAllChargingShips = this.fireAllChargingShips.bind(this);
+    this.getLetterInLane = this.getLetterInLane.bind(this);
+    this.projectLaserTarget = this.projectLaserTarget.bind(this);
+    this.laneToId = this.laneToId.bind(this);
+    this.destroyShip = this.destroyShip.bind(this);
+    this.getOppositeShip = this.getOppositeShip.bind(this);
+    this.fireLaser = this.fireLaser.bind(this);
+    this.haltLaser = this.haltLaser.bind(this);
+    this.checkEndGame = this.checkEndGame.bind(this);
+    this.getInitialState = this.getInitialState.bind(this);
+    this.reinitializeState = this.reinitializeState.bind(this);
+  }
+  
+  getInitialState() {
+    /*
+    returns an object with spankin-new versions of the variables used in state
+    */
     // track ship objects, keyed by ship ID
     this.initialAllyShips = {};
     this.initialEnemyShips = {};
@@ -261,33 +285,20 @@ class Game extends React.Component {
         idleShips: Array.from(Object.keys(this.initialEnemyShips))  // keyed by ID
     };
 
-    this.initializeState();
-
-    this.handleInputChange = this.handleInputChange.bind(this);
-    this.tick = this.tick.bind(this);
-    this.advanceShipState = this.advanceShipState.bind(this);
-    this.fireAllChargingShips = this.fireAllChargingShips.bind(this);
-    this.getLetterInLane = this.getLetterInLane.bind(this);
-    this.projectLaserTarget = this.projectLaserTarget.bind(this);
-    this.laneToId = this.laneToId.bind(this);
-    this.destroyShip = this.destroyShip.bind(this);
-    this.getOppositeShip = this.getOppositeShip.bind(this);
-    this.fireLaser = this.fireLaser.bind(this);
-    this.haltLaser = this.haltLaser.bind(this);
-    this.checkEndGame = this.checkEndGame.bind(this);
-  }
-  
-  initializeState() {
-    /*
-    (re)initializes state variables
-    */
-    this.state = {
+    return {
       input: 'begin',
       allyShips: this.initialAllyShips,
       enemyShips: this.initialEnemyShips,
       allyShipStates: this.initialAllyShipStates,
       enemyShipStates: this.initialEnemyShipStates
     };
+  }
+
+  reinitializeState() {
+    /*
+    reinitializes state variables
+    */
+    this.setState(this.getInitialState());
   }
 
   advanceShipState(shipId) {
@@ -457,6 +468,36 @@ class Game extends React.Component {
 
     // disable its laser
     this.haltLaser(ship);
+
+    // check for end of game
+    const endGameCondition = this.checkEndGame();
+    if (endGameCondition) {
+      // stop the main loop; game is finished
+      clearInterval(this.timerID);
+  
+      // check for win/lose
+      if (endGameCondition === 'win') {
+        console.log('win!');
+      } else if (endGameCondition === 'lose') {
+        console.log('it\'s ok\, try again!');
+      } else if (endGameCondition === 'tie') {
+        console.log('tie, pretty good');
+      }
+      const input = prompt('press y to play again');
+      if (input === 'y' && this.isRestarting === false) {
+        this.isRestarting = true;
+        window.location = 'https://gelafin.github.io/laser-lanes/';  // temp, just reload the page to reset
+        /* reinitializing the state vars works 100%, but there are bugs afterwards. Had "isGameRestarting" returns up to tick() and returned before setState(), but the new tick() just used some of the old state anyway
+        this.reinitializeState();
+      
+        // begin main game loop
+        this.timerID = setInterval(
+          () => this.tick(),
+          this.tickMs
+        );
+        */
+      }
+    }
   }
 
   laneToId(lane, isAlly) {
@@ -481,13 +522,11 @@ class Game extends React.Component {
     // process consequences of laser hitting the target
     if (target === 'consonant') {
       // blocked by consonant
-    } else if (target === 'otherBeam') {
-      // blocked by other beam
     } else if (target === 'empty') {
       // passes through an empty lane
-    } else if (target === 'otherShip') {
+    } else if (target === 'otherShip' || target === 'otherBeam') {
       // destroy other ship
-      const oppositeShip = this.getOppositeShip(lane, isAlly)
+      const oppositeShip = this.getOppositeShip(lane, isAlly);
 
       this.destroyShip(oppositeShip);
       this.haltLaser(shipObject);
@@ -550,14 +589,13 @@ class Game extends React.Component {
         this.fireLaser(enemyShip);
 
       } else {
-        console.log('***firing ally and enemy lasers in lane ', lane);
         // process both; laser collision
         this.advanceShipState(allyId);  // advance state to firing
         this.advanceShipState(enemyId);  // advance state to firing
         this.fireLaser(allyShip);
         this.fireLaser(enemyShip);
       }
-    }   
+    }
   }
 
   checkEndGame() {
@@ -568,26 +606,15 @@ class Game extends React.Component {
     // count living allies vs living enemies and decide result
     let allyCount = 0;
     let enemyCount = 0;
-    let livingPairs = 0;
     for (const lane of this.allLanes) {
       const allyId = this.laneToId(lane, true);
       const enemyId = this.laneToId(lane, false);
       const allyShip = this.state.allyShips[allyId];
       const enemyShip = this.state.enemyShips[enemyId];
 
-      // check if there are still pairs of opponent ships in a lane
+      // if any lane still has two living ships, game is not over yet
       if (allyShip.isAlive() && enemyShip.isAlive()) {
-        // if any lane still has two living ships not in stalemate, game is not over yet
-        if (allyShip.getState() !== enemyShip.getState()) {
-          return null;
-        }
-
-        // if not, there's still the chance that the currently charging ships are in the same lane
-        // in a stalemate, up to 2 lanes can have living pairs, so >2 means the game isn't over
-        livingPairs++;
-        if (livingPairs > 2) {
-          return null;
-        }
+        return null;
       }
 
       // keep a count of living allies
@@ -613,18 +640,12 @@ class Game extends React.Component {
 
   tick() {
     console.log('----- ticking -----');
-
-    // check for win/lose
-    const gameCondition = this.checkEndGame();
-    if (gameCondition === 'win') {
-      alert('win!');  // TODO: here and in lose, make play again button to reinitialize
-    } else if (gameCondition === 'lose') {
-      alert('it\'s ok\, try again!');
-    } else if (gameCondition === 'tie') {
-      alert('tie, pretty good');
-    }
-
+    
     this.fireAllChargingShips();
+    
+    if (this.isRestarting === true) {
+      return;
+    }
 
     this.setState((state) => {
 
@@ -633,10 +654,20 @@ class Game extends React.Component {
       const randomIdleAllyIndex = randomInt(0, state.allyShipStates.idleShips.length);
       const randomIdleEnemyIndex = randomInt(0, state.enemyShipStates.idleShips.length);
 
+      // debug
+      if (typeof randomIdleAllyIndex === 'undefined' || typeof randomIdleEnemyIndex === 'undefined'  ) {
+        debugger;
+      }
+
       // use those indices to get a random idle ship's ID
       const randomIdleAllyId = state.allyShipStates.idleShips[randomIdleAllyIndex];
       const randomIdleEnemyId = state.enemyShipStates.idleShips[randomIdleEnemyIndex];
 
+      // debug
+      if (typeof randomIdleAllyId === 'undefined' || typeof randomIdleEnemyId === 'undefined'  ) {
+        debugger;
+      }
+      
       // advance the states from idle to charging
       this.advanceShipState(randomIdleAllyId);
       this.advanceShipState(randomIdleEnemyId);
@@ -670,7 +701,9 @@ class Game extends React.Component {
   }
   
   componentWillUnmount() {
-    clearInterval(this.timerID);
+    if (this.timerID) {
+      clearInterval(this.timerID);
+    }
   }
   
   handleInputChange(value) {
