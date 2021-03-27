@@ -1,4 +1,4 @@
-timeout isn't applying to mutually destroyed ships
+test play again. Works for no but not for yes?
 
 properly laser images
   - size lasers (may need to update url for enemy lasers, since Flikr changed it for ally ones)

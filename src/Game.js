@@ -235,7 +235,7 @@ class Game extends React.Component {
     this.allLanes = Array.from(new Array(maxColumns).keys());
     this.tickMs = 8000;  // Ticks every 10 seconds. Affects how long player has to type a new word
     this.laserFireMs = Math.floor(this.tickMs / this.tickMs * 1000);  // MUST be shorter than tickMs. Affects sfx and delay to remove beam img
-    this.isRestarting = false;
+    this.isAtGameEnd = false;
 
     this.state = this.getInitialState();
 
@@ -253,6 +253,7 @@ class Game extends React.Component {
     this.checkEndGame = this.checkEndGame.bind(this);
     this.getInitialState = this.getInitialState.bind(this);
     this.reinitializeState = this.reinitializeState.bind(this);
+    this.replayPrompt = this.replayPrompt.bind(this);
   }
   
   getInitialState() {
@@ -457,18 +458,7 @@ class Game extends React.Component {
     this.setState({ [[laneStateArray][oldStateGroup]]: oldStateGroupArray });
   }
 
-  destroyShip(ship) {
-    /*
-    takes a reference to a ship object and destroys that ship
-    */
-    this.sfx.explosion.play().catch(()=>{console.log('\tERROR: explosion audio play() promise rejected. Click into the text box--or else this is localhost');});
-
-    // set .isAlive to false so ship remains as a tombstone
-    ship.destroy();
-
-    // disable its laser
-    this.haltLaser(ship);
-
+  replayPrompt() {
     // check for end of game
     const endGameCondition = this.checkEndGame();
     if (endGameCondition) {
@@ -483,21 +473,39 @@ class Game extends React.Component {
       } else if (endGameCondition === 'tie') {
         console.log('tie, pretty good');
       }
-      const input = prompt('press y to play again');
-      if (input === 'y' && this.isRestarting === false) {
-        this.isRestarting = true;
-        window.location = 'https://gelafin.github.io/laser-lanes/';  // temp, just reload the page to reset
-        /* reinitializing the state vars works 100%, but there are bugs afterwards. Had "isGameRestarting" returns up to tick() and returned before setState(), but the new tick() just used some of the old state anyway
-        this.reinitializeState();
-      
-        // begin main game loop
-        this.timerID = setInterval(
-          () => this.tick(),
-          this.tickMs
-        );
-        */
+      if (this.isAtGameEnd === false) {
+        this.isAtGameEnd = true;
+
+        const input = prompt('press y to play again');
+
+        if (input === 'y') {
+          window.location = 'https://gelafin.github.io/laser-lanes/';  // temp, just reload the page to reset
+
+          /* OPTION B reinitializing the state vars works 100%, but there are bugs afterwards. Had "isGameRestarting" returns up to tick() and returned before setState(), but the new tick() just used some of the old state anyway
+          this.reinitializeState();
+        
+          // begin main game loop
+          this.timerID = setInterval(
+            () => this.tick(),
+            this.tickMs
+          );
+          */
+        }
       }
     }
+  }
+
+  destroyShip(ship) {
+    /*
+    takes a reference to a ship object and destroys that ship
+    */
+    this.sfx.explosion.play().catch(()=>{console.log('\tERROR: explosion audio play() promise rejected. Click into the text box--or else this is localhost');});
+
+    // set .isAlive to false so ship remains as a tombstone
+    ship.destroy();
+
+    // disable its laser
+    this.haltLaser(ship);
   }
 
   laneToId(lane, isAlly) {
@@ -522,11 +530,15 @@ class Game extends React.Component {
     // process consequences of laser hitting the target
     if (target === 'consonant') {
       // blocked by consonant
+      console.log('\t'+ shipId + ' blocked by consonant. Should be set back to idle');
     } else if (target === 'empty') {
       // passes through an empty lane
+      console.log('\t'+ shipId + ' fires through empty lane. Should never happen');
     } else if (target === 'otherShip' || target === 'otherBeam') {
       // destroy other ship
+      console.log('\t'+ shipId + ' hits ' + target + '. Should be retired\n\t\tdestroying opponent now');
       const oppositeShip = this.getOppositeShip(lane, isAlly);
+      this.destroyShip(oppositeShip);
 
       disabledLaser = true;
     }
@@ -537,9 +549,10 @@ class Game extends React.Component {
     // done firing the laser; delay resetting state to idle for a few seconds to let player see it was fired
     setTimeout(() => {
       if (!disabledLaser) {
+        console.log('\t\tsetting it back to idle');
         this.advanceShipState(shipId);
       } else {
-        this.destroyShip(oppositeShip);
+        console.log('\t\tretiring it from idle ships now');
         this.haltLaser(shipObject);
   
         // update the object in props for the children
@@ -556,7 +569,6 @@ class Game extends React.Component {
         ======================== 
         */
         let newShipObjects = {...this.state[shipObjects]};
-        // newShipObjects[shipId].advanceState();
         newShipObjects[shipId].retire();
         this.setState({ [shipObjects]: newShipObjects });
       }
@@ -643,7 +655,9 @@ class Game extends React.Component {
     
     this.fireAllChargingShips();
     
-    if (this.isRestarting === true) {
+    this.replayPrompt();
+
+    if (this.isAtGameEnd === true) {
       return;
     }
 
@@ -654,20 +668,22 @@ class Game extends React.Component {
       const randomIdleAllyIndex = randomInt(0, state.allyShipStates.idleShips.length);
       const randomIdleEnemyIndex = randomInt(0, state.enemyShipStates.idleShips.length);
 
-      // debug
-      if (typeof randomIdleAllyIndex === 'undefined' || typeof randomIdleEnemyIndex === 'undefined'  ) {
-        debugger;
-      }
-
       // use those indices to get a random idle ship's ID
       const randomIdleAllyId = state.allyShipStates.idleShips[randomIdleAllyIndex];
       const randomIdleEnemyId = state.enemyShipStates.idleShips[randomIdleEnemyIndex];
 
-      // debug
       if (typeof randomIdleAllyId === 'undefined' || typeof randomIdleEnemyId === 'undefined'  ) {
-        debugger;
+        return;  // for the final tick, when the delayed destroyShip() hasn't been called yet
       }
       
+      if (state.allyShips[randomIdleAllyId].isAlive() === false) {
+        console.log('********** charging' + randomIdleAllyId + ' even though it\'s dead');
+      } else if (state.enemyShips[randomIdleEnemyId].isAlive() === false) {
+        console.log('********** charging' + randomIdleAllyId + ' even though it\'s dead');
+      } else {
+        console.log('***** charging' + randomIdleAllyId + ' and ' + randomIdleEnemyId);
+      }
+
       // advance the states from idle to charging
       this.advanceShipState(randomIdleAllyId);
       this.advanceShipState(randomIdleEnemyId);
