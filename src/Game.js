@@ -466,17 +466,18 @@ class Game extends React.Component {
       clearInterval(this.timerID);
   
       // check for win/lose
+      let resultMessage;
       if (endGameCondition === 'win') {
-        console.log('win!');
+        resultMessage = 'Win!';
       } else if (endGameCondition === 'lose') {
-        console.log('it\'s ok\, try again!');
+        resultMessage = 'It\'s ok\, try again!';
       } else if (endGameCondition === 'tie') {
-        console.log('tie, pretty good');
+        resultMessage = 'Tie, pretty good.';
       }
       if (this.isAtGameEnd === false) {
         this.isAtGameEnd = true;
 
-        const input = prompt('press y to play again');
+        const input = prompt(resultMessage + ' Press y to play again');
 
         if (input === 'y') {
           window.location = 'https://gelafin.github.io/laser-lanes/';  // temp, just reload the page to reset
@@ -530,13 +531,10 @@ class Game extends React.Component {
     // process consequences of laser hitting the target
     if (target === 'consonant') {
       // blocked by consonant
-      console.log('\t'+ shipId + ' blocked by consonant. Should be set back to idle');
     } else if (target === 'empty') {
       // passes through an empty lane
-      console.log('\t'+ shipId + ' fires through empty lane. Should never happen');
     } else if (target === 'otherShip' || target === 'otherBeam') {
       // destroy other ship
-      console.log('\t'+ shipId + ' hits ' + target + '. Should be retired\n\t\tdestroying opponent now');
       const oppositeShip = this.getOppositeShip(lane, isAlly);
       this.destroyShip(oppositeShip);
 

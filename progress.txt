@@ -1,4 +1,4 @@
-test play again. Works for no but not for yes?
+In fireLaser(), in block where ship is destroyed (line 538), try to move into setTimeout. Previously tried but destroying ship causes score to be counted unfairly during last turn if both ships score a point, since fireLaser calls destroyShip on the first one, which calculates the end game before the second ship gets a turn in fireLaser.
 
 properly laser images
   - size lasers (may need to update url for enemy lasers, since Flikr changed it for ally ones)
